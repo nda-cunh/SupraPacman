@@ -16,6 +16,7 @@ const MENU = 0
 const PLAY = 1
 const GAMEOVER = 2
 const NEXTLEVEL = 3
+const CONGRATULATIONS = 4
 
 # Map constants
 const EMPTY = 0
@@ -41,7 +42,7 @@ const CAGE = 19
 
 # All the sprites used in the game
 const SPRITE_LOOKUP = [
-    '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟧', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
+    '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟨', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
 ]
 
 # DIRECTION
@@ -244,7 +245,9 @@ abstract class Ghost
 				timer_stop(this.timer_isblue)
 			endif
 			this.timer_isblue = timer_start(8000, (_) => {
-				this.SetChase()
+				if this.state == Ghost.FRIGHTENED
+					this.SetChase()
+				endif
 				this.timer_isblue = 0
 			}, {repeat: 0})
 		endif
@@ -459,6 +462,7 @@ export class Application
 	var remain_food: number
 	var level_num: number = 1
 	var directory_level: string
+	var nb_levels: number
 
 	##############################
 	## Constructor
@@ -469,6 +473,9 @@ export class Application
 		HideCursor()
 		this.InitializePopup()
 		this.ChangeActivity(MENU)
+		# count number of levels in directory
+		var files = split(globpath(this.directory_level, '*.level'), '\n')
+		this.nb_levels = len(files)
 	enddef
 
 	def Close()
@@ -549,6 +556,8 @@ export class Application
 				this.DrawGameOver()
 			elseif this.activity == NEXTLEVEL
 				this.DrawNextLevel()
+			elseif this.activity == CONGRATULATIONS
+				this.DrawCongratulations()
 			endif
 		}, {repeat: -1})
 	enddef
@@ -565,7 +574,15 @@ export class Application
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		elseif this.activity == NEXTLEVEL
 			# stop move ghost timer
-			timer_stop(this.timer_ghost)
+			if this.timer_ghost != 0
+				timer_stop(this.timer_ghost)
+			endif
+			setbufvar(bufnr, '&filetype', 'suprapacman')
+		elseif this.activity == CONGRATULATIONS
+			# stop move ghost timer
+			if this.timer_ghost != 0
+				timer_stop(this.timer_ghost)
+			endif
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		endif
 	enddef
@@ -593,6 +610,19 @@ export class Application
 	## it's used to reset the game or start a new one
 	##########################################
 	def InitGame()
+		if this.timer_ghost != 0
+			timer_stop(this.timer_ghost)
+			this.timer_ghost = 0
+		endif
+
+		# if level number is greater than number of levels, go to
+		# congratulations
+
+		if this.level_num > this.nb_levels
+			this.ChangeActivity(CONGRATULATIONS)
+			return
+		endif
+
 		this.remain_food = 0
 		this.player = Pacman.new(15, 15, NONE)
 		this.ChangeActivity(PLAY)
@@ -678,7 +708,6 @@ export class Application
 			endfor
 			n += 1
 		endfor
-
 
 		for i in range(len(this.map))
 			for j in range(len(this.map[i]))
@@ -1048,7 +1077,6 @@ export class Application
 			this.IncreaseScore(10)
 			this.lst_entity[new_y][new_x] = EMPTY
 			this.remain_food -= 1
-			echom 'Food remaining: ' .. this.remain_food
 			if this.remain_food == 0
 				# Win the game
 				this.highscore = max([this.highscore, this.score])
@@ -1060,6 +1088,9 @@ export class Application
 			this.lst_entity[new_y][new_x] = EMPTY
 			# Set all ghosts to FRIGHTENED
 			for g in this.ghosts
+				if g.IsEaten()
+					continue
+				endif
 				g.SetFrightened()
 			endfor
 		# FOOD1 to FOOD8
@@ -1250,6 +1281,44 @@ export class Application
 		add(button, score_str)
 		add(button, highscore_str)
 		popup_settext(this.popup, button)
+	enddef
+
+	# When all levels are completed
+	def DrawCongratulations()
+		const ascii_txt = [' ',
+			'  ░██████',
+			' ░██   ░██',
+			'░██         ░██    ░██ ░████████  ░██░████  ░██████',
+			' ░████████  ░██    ░██ ░██    ░██ ░███           ░██',
+			'        ░██ ░██    ░██ ░██    ░██ ░██       ░███████',
+			' ░██   ░██  ░██   ░███ ░███   ░██ ░██      ░██   ░██',
+			'  ░██████    ░█████░██ ░██░█████  ░██       ░█████░██',
+			'                       ░██',
+			'                       ░██',
+			' ',
+			'          ░████████ ░███    ░██ ░███████  ',
+			'          ░██       ░████   ░██ ░██   ░██ ',
+			'          ░██       ░██░██  ░██ ░██    ░██',
+			'          ░███████  ░██ ░██ ░██ ░██    ░██',
+			'          ░██       ░██  ░██░██ ░██    ░██',
+			'          ░██       ░██   ░████ ░██   ░██ ',
+			'          ░████████ ░██    ░███ ░███████  '
+		]
+
+		# affiche le score final et le highscore
+		var str = ['', '']
+		# Center it with strcharlen of ascii_txt
+		const space_center = repeat(' ', (width / 2) - (strcharlen(ascii_txt[4]) / 2))
+		for i in range(len(ascii_txt))
+			add(str, space_center .. ascii_txt[i])
+		endfor
+		add(str, '')
+		add(str, '')
+		const score_str = '💰 Final Score: ' .. this.score
+		const highscore_str = '🏆 Highscore: ' .. this.highscore
+		add(str, score_str)
+		add(str, highscore_str)
+		popup_settext(this.popup, str)
 	enddef
 endclass
 
