@@ -7,49 +7,19 @@ vim9script
 var t_ve: string
 var hlcursor: dict<any>
 
-# Window size
-const width = 80
-const height = 30
-
-# Activity states
-const MENU = 0
-const PLAY = 1
-const GAMEOVER = 2
-const NEXTLEVEL = 3
-const CONGRATULATIONS = 4
-
-# Map constants
-const EMPTY = 0
-const WALL = 1
-const PACMAN = 2
-const GHOST_EAT = 3
-const BLINKY = 4
-const PINKY = 5
-const INKY = 6
-const CLYDE = 7
-const SIMPLE = 8
-const PACGOMME = 9
-const FOOD1 = 10
-const FOOD2 = 11
-const FOOD3 = 12
-const FOOD4 = 13
-const FOOD5 = 14
-const FOOD6 = 15
-const FOOD7 = 16
-const FOOD8 = 17
-const GHOST_DEAD = 18
-const CAGE = 19
-
-# All the sprites used in the game
-const SPRITE_LOOKUP = [
-    '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟨', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
-]
-
 import autoload './Direction.vim' as Dir
 import autoload './Pacman.vim' as Pac
+import autoload './Constants.vim' as Const
+import autoload './Activity.vim' as Activity 
+import autoload './TileType.vim' as Tile
 
 type Direction = Dir.Direction
 type Pacman = Pac.Pacman
+
+# All the sprites used in the game
+export const SPRITE_LOOKUP = [
+    '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟨', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
+]
 
 ##############################
 ## Ghost class
@@ -106,12 +76,12 @@ abstract class Ghost
 		var height_max = len(map)
 
 		# --- Dir.UP 
-		if this.y > 0 && map[this.y - 1][this.x] != WALL && this.dir != Dir.DOWN
+		if this.y > 0 && map[this.y - 1][this.x] != Tile.WALL && this.dir != Dir.DOWN
 			add(possible_dirs, Dir.UP)
 		endif
 
 		# --- Dir.DOWN 
-		if this.y < height_max - 1 && map[this.y + 1][this.x] != WALL && this.dir != Dir.UP
+		if this.y < height_max - 1 && map[this.y + 1][this.x] != Tile.WALL && this.dir != Dir.UP
 			add(possible_dirs, Dir.DOWN)
 		endif
 
@@ -120,7 +90,7 @@ abstract class Ghost
 		if left_x < 0
 			left_x = width_max - 1
 		endif
-		if map[this.y][left_x] != WALL && this.dir != Dir.RIGHT
+		if map[this.y][left_x] != Tile.WALL && this.dir != Dir.RIGHT
 			add(possible_dirs, Dir.LEFT)
 		endif
 
@@ -129,7 +99,7 @@ abstract class Ghost
 		if right_x >= width_max
 			right_x = 0
 		endif
-		if map[this.y][right_x] != WALL && this.dir != Dir.LEFT
+		if map[this.y][right_x] != Tile.WALL && this.dir != Dir.LEFT
 			add(possible_dirs, Dir.RIGHT)
 		endif
 
@@ -224,12 +194,12 @@ abstract class Ghost
 			}, {repeat: 0})
 		endif
 		this.state = Ghost.FRIGHTENED
-		this.id = GHOST_EAT
+		this.id = Tile.GHOST_EAT
 	enddef
 
 	def SetEaten()
 		this.state = Ghost.EATEN
-		this.id = GHOST_DEAD
+		this.id = Tile.GHOST_DEAD
 	enddef
 
 	###########################
@@ -260,8 +230,8 @@ abstract class Ghost
 			new_y = 0
 		endif
 
-		if map[new_y][new_x] != WALL
-			map[this.y][this.x] = EMPTY
+		if map[new_y][new_x] != Tile.WALL
+			map[this.y][this.x] = Tile.EMPTY
 			this.x = new_x
 			this.y = new_y
 
@@ -424,7 +394,7 @@ export class Application
 	var player: Pacman
 	var score: number
 	var highscore: number
-	var activity = MENU
+	var activity = Activity.MENU
 	var map: list<list<number>> = []
 	var map_opti: list<list<string>> = []
 	var ghosts: list<Ghost>
@@ -445,7 +415,7 @@ export class Application
 		this.level_min = level_chose
 		HideCursor()
 		this.InitializePopup()
-		this.ChangeActivity(MENU)
+		this.ChangeActivity(Activity.MENU)
 		# count number of levels in directory
 		var files = split(globpath(this.directory_level, '*.level'), '\n')
 		this.nb_levels = len(files)
@@ -477,8 +447,8 @@ export class Application
 			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
 			highlight: 'Normal',
 			border: [1],
-			minwidth: width,
-			minheight: height,
+			minwidth: Const.width,
+			minheight: Const.height,
 			time: -1,
 			drag: 1,
 			dragall: 1,
@@ -518,18 +488,18 @@ export class Application
 		endif
 
 		this.timer = timer_start(70, (_) => {
-			if this.activity == PLAY
+			if this.activity == Activity.PLAY
 				this.Clear()
 				this.UpdateGame()
 				# this.Draw()
 				this.DrawGame()
-			elseif this.activity == MENU
+			elseif this.activity == Activity.MENU
 				this.DrawMenu()
-			elseif this.activity == GAMEOVER
+			elseif this.activity == Activity.GAMEOVER
 				this.DrawGameOver()
-			elseif this.activity == NEXTLEVEL
+			elseif this.activity == Activity.NEXTLEVEL
 				this.DrawNextLevel()
-			elseif this.activity == CONGRATULATIONS
+			elseif this.activity == Activity.CONGRATULATIONS
 				this.DrawCongratulations()
 			endif
 		}, {repeat: -1})
@@ -539,19 +509,19 @@ export class Application
 		this.activity = new_activity
 
 		const bufnr = winbufnr(this.popup)
-		if this.activity == PLAY
+		if this.activity == Activity.PLAY
 			setbufvar(bufnr, '&filetype', 'suprapacmangame')
-		elseif this.activity == MENU
+		elseif this.activity == Activity.MENU
 			setbufvar(bufnr, '&filetype', 'suprapacman')
-		elseif this.activity == GAMEOVER
+		elseif this.activity == Activity.GAMEOVER
 			setbufvar(bufnr, '&filetype', 'suprapacman')
-		elseif this.activity == NEXTLEVEL
+		elseif this.activity == Activity.NEXTLEVEL
 			# stop move ghost timer
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
 			endif
 			setbufvar(bufnr, '&filetype', 'suprapacman')
-		elseif this.activity == CONGRATULATIONS
+		elseif this.activity == Activity.CONGRATULATIONS
 			# stop move ghost timer
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
@@ -577,7 +547,6 @@ export class Application
 	enddef
 
 
-
 	##########################################
 	## Initialize Game State
 	## it's used to reset the game or start a new one
@@ -592,17 +561,17 @@ export class Application
 		# congratulations
 
 		if this.level_num > this.nb_levels
-			this.ChangeActivity(CONGRATULATIONS)
+			this.ChangeActivity(Activity.CONGRATULATIONS)
 			return
 		endif
 
 		this.remain_food = 0
 		this.player = Pacman.new(15, 15, Dir.NONE)
-		this.ChangeActivity(PLAY)
+		this.ChangeActivity(Activity.PLAY)
 		this.highscore = g:SUPRA_PACMAN_HIGHSCORE
 
-		const width_max = width / 2
-		const height_max = height
+		const width_max = Const.width / 2
+		const height_max = Const.height
 
 		this.map = []
 		this.lst_entity = []
@@ -620,27 +589,27 @@ export class Application
 		for i in level 
 			var line = []
 			for j in i
-				if j == PACMAN
+				if j == Tile.PACMAN
 					this.player.SetPosition(len(line), len(this.map))
-				elseif j == BLINKY
-					var new_ghost = BlinkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, BLINKY)
+				elseif j == Tile.BLINKY
+					var new_ghost = BlinkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.BLINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
-				elseif j == PINKY
-					var new_ghost = PinkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, PINKY)
+				elseif j == Tile.PINKY
+					var new_ghost = PinkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.PINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
-				elseif j == INKY
-					var new_ghost = InkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, INKY)
+				elseif j == Tile.INKY
+					var new_ghost = InkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.INKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
-				elseif j == CLYDE
-					var new_ghost = ClydeGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, CLYDE)
+				elseif j == Tile.CLYDE
+					var new_ghost = ClydeGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.CLYDE)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
-				elseif j == CAGE
+				elseif j == Tile.CAGE
 					this.cage_pos = [len(line), len(this.map)]
-				elseif j == SIMPLE
+				elseif j == Tile.SIMPLE
 					this.remain_food += 1
 				endif
 				add(line, j)
@@ -651,11 +620,11 @@ export class Application
 
 		# Clear ghost from map
 		for g in this.ghosts
-			this.map[g.y][g.x] = EMPTY
+			this.map[g.y][g.x] = Tile.EMPTY
 		endfor
 
 		# Clear player from map
-		this.map[this.player.y][this.player.x] = EMPTY
+		this.map[this.player.y][this.player.x] = Tile.EMPTY
 
 
 
@@ -673,10 +642,10 @@ export class Application
 		var n = 0
 		for e in this.lst_entity
 			for j in range(len(e))
-				if e[j] == SIMPLE || e[j] == PACGOMME || (e[j] >= FOOD1 && e[j] <= FOOD8)
-					this.map[n][j] = EMPTY # if there's an entity
+				if e[j] == Tile.SIMPLE || e[j] == Tile.PACGOMME || (e[j] >= Tile.FOOD1 && e[j] <= Tile.FOOD8)
+					this.map[n][j] = Tile.EMPTY # if there's an entity
 				else
-					e[j] = EMPTY
+					e[j] = Tile.EMPTY
 				endif
 			endfor
 			n += 1
@@ -694,16 +663,16 @@ export class Application
 				var down_right: bool
 				var down_left: bool
 
-				up = (i - 1 < 0) || (this.map[i - 1][j] == WALL)
-				down = (i + 1 >= len(this.map)) || (this.map[i + 1][j] == WALL)
-				left = (j - 1 < 0) || (this.map[i][j - 1] == WALL)
-				right = (j + 1 >= len(this.map[i])) || (this.map[i][j + 1] == WALL)
+				up = (i - 1 < 0) || (this.map[i - 1][j] == Tile.WALL)
+				down = (i + 1 >= len(this.map)) || (this.map[i + 1][j] == Tile.WALL)
+				left = (j - 1 < 0) || (this.map[i][j - 1] == Tile.WALL)
+				right = (j + 1 >= len(this.map[i])) || (this.map[i][j + 1] == Tile.WALL)
 
 				# Diagonales
-				up_left = (i - 1 < 0 || j - 1 < 0) || (this.map[i - 1][j - 1] == WALL)
-				up_right = (i - 1 < 0 || j + 1 >= len(this.map[i])) || (this.map[i - 1][j + 1] == WALL)
-				down_left = (i + 1 >= len(this.map) || j - 1 < 0) || (this.map[i + 1][j - 1] == WALL)
-				down_right = (i + 1 >= len(this.map) || j + 1 >= len(this.map[i])) || (this.map[i + 1][j + 1] == WALL)
+				up_left = (i - 1 < 0 || j - 1 < 0) || (this.map[i - 1][j - 1] == Tile.WALL)
+				up_right = (i - 1 < 0 || j + 1 >= len(this.map[i])) || (this.map[i - 1][j + 1] == Tile.WALL)
+				down_left = (i + 1 >= len(this.map) || j - 1 < 0) || (this.map[i + 1][j - 1] == Tile.WALL)
+				down_right = (i + 1 >= len(this.map) || j + 1 >= len(this.map[i])) || (this.map[i + 1][j + 1] == Tile.WALL)
 
 				if up && down && left && right && up_right && up_left && down_right && down_left
 					this.map_opti[i][j] = '  ' # Full wall
@@ -793,7 +762,7 @@ export class Application
 	def GameOver()
 		this.highscore = max([this.highscore, this.score])
 		g:SUPRA_PACMAN_HIGHSCORE = this.highscore
-		this.ChangeActivity(GAMEOVER)
+		this.ChangeActivity(Activity.GAMEOVER)
 	enddef
 
 	def Replay()
@@ -808,7 +777,7 @@ export class Application
 	##############################
 	def KeyFilter(wid: number, key: string): number
 		# Play Activity
-		if this.activity == PLAY
+		if this.activity == Activity.PLAY
 			if key ==? 'w' || key == "\<up>" || key == "k"
 				this.player.dir_save = Dir.UP
 				return 1
@@ -823,7 +792,7 @@ export class Application
 				return 1
 			endif
 		# Menu Activity
-		elseif this.activity == MENU
+		elseif this.activity == Activity.MENU
 			if key ==? "\<Enter>"
 				this.Replay()
 			elseif key ==? "\<LeftMouse>" || key ==? "\<2-LeftMouse>" || key ==? "\<3-LeftMouse>" || key ==? "\<4-LeftMouse>" || key ==? "\<5-LeftMouse>"
@@ -837,7 +806,7 @@ export class Application
 				for i in line
 					if stridx(i, 'Play') != -1
 						this.Replay()
-						this.ChangeActivity(PLAY)
+						this.ChangeActivity(Activity.PLAY)
 						break
 					elseif stridx(i, 'Quit') != -1
 						this.Close()
@@ -848,7 +817,7 @@ export class Application
 				endtry
 				return 1
 			endif
-		elseif this.activity == NEXTLEVEL
+		elseif this.activity == Activity.NEXTLEVEL
 			if key ==? "\<Enter>"
 				this.level_num += 1
 				this.InitGame()
@@ -875,7 +844,7 @@ export class Application
 				endtry
 				return 1
 			endif
-		elseif this.activity == GAMEOVER
+		elseif this.activity == Activity.GAMEOVER
 			if key ==? "\<Enter>"
 				this.Replay()
 				return 1
@@ -918,7 +887,7 @@ export class Application
 
 		# draw all entities
 
-		this.map[this.player.y][this.player.x] = PACMAN
+		this.map[this.player.y][this.player.x] = Tile.PACMAN
 		# draw ghost
 		for g in this.ghosts
 			# Check for ghost collision
@@ -937,9 +906,9 @@ export class Application
 			var line_chars: list<string> = []
 			for j in range(len(this.map[i]))
 				const value = this.map[i][j]
-				if value == WALL
+				if value == Tile.WALL
 					add(line_chars, this.map_opti[i][j])
-				elseif value == EMPTY
+				elseif value == Tile.EMPTY
 					add(line_chars, SPRITE_LOOKUP[this.lst_entity[i][j]])
 				else
 					add(line_chars, SPRITE_LOOKUP[value])
@@ -960,10 +929,10 @@ export class Application
 	def Clear()
 		# clear all ghost from map
 		for g in this.ghosts
-			this.map[g.y][g.x] = EMPTY
+			this.map[g.y][g.x] = Tile.EMPTY
 		endfor
 		# clear player from map
-		this.map[this.player.y][this.player.x] = EMPTY
+		this.map[this.player.y][this.player.x] = Tile.EMPTY
 	enddef
 
 	##############################
@@ -982,7 +951,7 @@ export class Application
 			if p_y >= len(this.map)
 				p_y = 0
 			endif
-			if this.map[p_y][this.player.x] != WALL
+			if this.map[p_y][this.player.x] != Tile.WALL
 				this.player.dir = Dir.DOWN
 			endif
 		elseif this.player.dir_save == Dir.UP
@@ -990,7 +959,7 @@ export class Application
 			if p_y < 0
 				p_y = len(this.map) - 1
 			endif
-			if this.map[p_y][this.player.x] != WALL
+			if this.map[p_y][this.player.x] != Tile.WALL
 				this.player.dir = Dir.UP
 			endif
 		elseif this.player.dir_save == Dir.LEFT
@@ -998,7 +967,7 @@ export class Application
 			if p_x < 0
 				p_x = len(this.map[0]) - 1
 			endif
-			if this.map[this.player.y][p_x] != WALL
+			if this.map[this.player.y][p_x] != Tile.WALL
 				this.player.dir = Dir.LEFT
 			endif
 		elseif this.player.dir_save == Dir.RIGHT
@@ -1006,7 +975,7 @@ export class Application
 			if p_x >= len(this.map[0])
 				p_x = 0
 			endif
-			if this.map[this.player.y][p_x] != WALL
+			if this.map[this.player.y][p_x] != Tile.WALL
 				this.player.dir = Dir.RIGHT
 			endif
 		else
@@ -1037,7 +1006,7 @@ export class Application
 		endif
 
 		# Check for wall collision
-		if this.map[new_y][new_x] == WALL
+		if this.map[new_y][new_x] == Tile.WALL
 			this.player.SetPosition(old_x, old_y)
 			return
 		endif
@@ -1046,19 +1015,19 @@ export class Application
 
 		var e_under_pacman = this.lst_entity[new_y][new_x]
 
-		if e_under_pacman == SIMPLE
+		if e_under_pacman == Tile.SIMPLE
 			this.IncreaseScore(10)
-			this.lst_entity[new_y][new_x] = EMPTY
+			this.lst_entity[new_y][new_x] = Tile.EMPTY
 			this.remain_food -= 1
 			if this.remain_food == 0
 				# Win the game
 				this.highscore = max([this.highscore, this.score])
 				g:SUPRA_PACMAN_HIGHSCORE = this.highscore
-				this.ChangeActivity(NEXTLEVEL)
+				this.ChangeActivity(Activity.NEXTLEVEL)
 			endif
-		elseif e_under_pacman == PACGOMME
+		elseif e_under_pacman == Tile.PACGOMME
 			this.IncreaseScore(50)
-			this.lst_entity[new_y][new_x] = EMPTY
+			this.lst_entity[new_y][new_x] = Tile.EMPTY
 			# Set all ghosts to FRIGHTENED
 			for g in this.ghosts
 				if g.IsEaten()
@@ -1066,10 +1035,10 @@ export class Application
 				endif
 				g.SetFrightened()
 			endfor
-		# FOOD1 to FOOD8
-		elseif e_under_pacman >= FOOD1 && e_under_pacman <= FOOD8
-			this.IncreaseScore(100 * (e_under_pacman - FOOD1 + 1))
-			this.lst_entity[new_y][new_x] = EMPTY
+		# Tile.FOOD1 to Tile.FOOD8
+		elseif e_under_pacman >= Tile.FOOD1 && e_under_pacman <= Tile.FOOD8
+			this.IncreaseScore(100 * (e_under_pacman - Tile.FOOD1 + 1))
+			this.lst_entity[new_y][new_x] = Tile.EMPTY
 		endif
 	enddef
 
@@ -1078,7 +1047,7 @@ export class Application
 	## Draw Scoreboard
 	###############################
 	def DrawScore(map_print: list<string>, is_over: bool = 0)
-		const width_2 = width / 2 - 14
+		const width_2 = Const.width / 2 - 14
 
 		add(map_print, printf(' ╭─────────────╮ ╭─────────────╮%*s╭───────────────────╮', width_2, ' '))
 		add(map_print, printf(' │%-10d💰 │ │%-10d🏆 │%*s│ 󰮯  Supra Pac-Man  │', this.score, this.highscore, width_2, ' '))
@@ -1105,7 +1074,7 @@ export class Application
 
 		var str = ['', '']
 		# Center it with strcharlen of ascii_txt
-		const space_center = repeat(' ', (width / 2) - (strcharlen(ascii_txt[0]) / 2))
+		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[0]) / 2))
 		for i in range(len(ascii_txt))
 			add(str, space_center .. ascii_txt[i])
 		endfor
@@ -1122,7 +1091,7 @@ export class Application
 			'╭────────────────────────────────────╮',
 			'│               Quit                │',
 			'╰────────────────────────────────────╯']
-		const space_center_btn = repeat(' ', (width / 2) - (strcharlen(button_play[0]) / 2))
+		const space_center_btn = repeat(' ', (Const.width / 2) - (strcharlen(button_play[0]) / 2))
 
 		for i in range(len(button_play))
 			add(str, space_center_btn .. button_play[i])
@@ -1157,7 +1126,7 @@ export class Application
 		'      ░██████      ░███     ░███████  ░██',
 		'']
 
-		const space_center = repeat(' ', (width / 2) - (strcharlen(ascii_txt[0]) / 2))
+		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[0]) / 2))
 		var gameover = []
 
 		add(gameover, '')
@@ -1175,7 +1144,7 @@ export class Application
 			'╭────────────────────────────────────╮',
 			'│                Quit                │',
 			'╰────────────────────────────────────╯']
-		const space_center_btn = repeat(' ', (width / 2) - (strcharlen(button_retry[0]) / 2))
+		const space_center_btn = repeat(' ', (Const.width / 2) - (strcharlen(button_retry[0]) / 2))
 		for i in range(len(button_retry))
 			add(gameover, space_center_btn .. button_retry[i])
 		endfor
@@ -1187,7 +1156,7 @@ export class Application
 		var score_str = '💰 Score: ' .. this.score
 		var txt_len = len(gameover)
 		# Add space When the height is atteint
-		for i in range(txt_len, height - 2)
+		for i in range(txt_len, Const.height - 2)
 			add(gameover, '')
 		endfor
 		add(gameover, score_str)
@@ -1231,12 +1200,12 @@ export class Application
 			'│                Quit                │',
 			'╰────────────────────────────────────╯']
 		# use printf to center the ascii art
-		const space_center = repeat(' ', (width / 2) - (strcharlen(ascii_txt[1]) / 2))
+		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[1]) / 2))
 		var button = []
 		for i in range(len(ascii_txt))
 			add(button, space_center .. ascii_txt[i])
 		endfor
-		const space_center_btn = repeat(' ', (width / 2) - (strcharlen(button_next[0]) / 2))
+		const space_center_btn = repeat(' ', (Const.width / 2) - (strcharlen(button_next[0]) / 2))
 		for i in range(len(button_next))
 			add(button, space_center_btn .. button_next[i])
 		endfor
@@ -1248,7 +1217,7 @@ export class Application
 		const score_str = '💰 Score: ' .. this.score
 		const txt_len = len(button)
 		# Add space When the height is atteint
-		for i in range(txt_len, height - 2)
+		for i in range(txt_len, Const.height - 2)
 			add(button, '')
 		endfor
 		add(button, score_str)
@@ -1281,7 +1250,7 @@ export class Application
 		# affiche le score final et le highscore
 		var str = ['', '']
 		# Center it with strcharlen of ascii_txt
-		const space_center = repeat(' ', (width / 2) - (strcharlen(ascii_txt[4]) / 2))
+		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[4]) / 2))
 		for i in range(len(ascii_txt))
 			add(str, space_center .. ascii_txt[i])
 		endfor
