@@ -45,39 +45,11 @@ const SPRITE_LOOKUP = [
     '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟨', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
 ]
 
-# DIRECTION
-type Direction = number
+import autoload './Direction.vim' as Dir
+import autoload './Pacman.vim' as Pac
 
-const UP: Direction = 1
-const LEFT: Direction = 2
-const DOWN: Direction = 3
-const RIGHT: Direction = 4
-const NONE: Direction = 99
-
-
-
-####################################
-## Pacman class
-## It's the player class
-#####################################
-class Pacman
-	public var y: number
-	public var x: number
-	public var dir: Direction
-	public var dir_save: Direction
-
-	def new(y: number, x: number, dir: Direction)
-		this.y = y
-		this.x = x
-		this.dir = NONE
-		this.dir_save = NONE
-	enddef
-
-	def SetPosition(x: number, y: number)
-		this.y = y
-		this.x = x
-	enddef
-endclass
+type Direction = Dir.Direction
+type Pacman = Pac.Pacman
 
 ##############################
 ## Ghost class
@@ -133,32 +105,32 @@ abstract class Ghost
 		var width_max = len(map[0])
 		var height_max = len(map)
 
-		# --- UP 
-		if this.y > 0 && map[this.y - 1][this.x] != WALL && this.dir != DOWN
-			add(possible_dirs, UP)
+		# --- Dir.UP 
+		if this.y > 0 && map[this.y - 1][this.x] != WALL && this.dir != Dir.DOWN
+			add(possible_dirs, Dir.UP)
 		endif
 
-		# --- DOWN 
-		if this.y < height_max - 1 && map[this.y + 1][this.x] != WALL && this.dir != UP
-			add(possible_dirs, DOWN)
+		# --- Dir.DOWN 
+		if this.y < height_max - 1 && map[this.y + 1][this.x] != WALL && this.dir != Dir.UP
+			add(possible_dirs, Dir.DOWN)
 		endif
 
-		# --- LEFT 
+		# --- Dir.LEFT 
 		var left_x = this.x - 1
 		if left_x < 0
 			left_x = width_max - 1
 		endif
-		if map[this.y][left_x] != WALL && this.dir != RIGHT
-			add(possible_dirs, LEFT)
+		if map[this.y][left_x] != WALL && this.dir != Dir.RIGHT
+			add(possible_dirs, Dir.LEFT)
 		endif
 
-		# --- RIGHT 
+		# --- Dir.RIGHT 
 		var right_x = this.x + 1
 		if right_x >= width_max
 			right_x = 0
 		endif
-		if map[this.y][right_x] != WALL && this.dir != LEFT
-			add(possible_dirs, RIGHT)
+		if map[this.y][right_x] != WALL && this.dir != Dir.LEFT
+			add(possible_dirs, Dir.RIGHT)
 		endif
 
 		if len(possible_dirs) == 1
@@ -167,20 +139,20 @@ abstract class Ghost
 			return 
 		endif
 
-		var best_dir: Direction = NONE
+		var best_dir: Direction = Dir.NONE
 		var best_dist = 999999.0
 
 		for dir in possible_dirs
 			var new_x = this.x
 			var new_y = this.y
 
-			if dir == UP
+			if dir == Dir.UP
 				new_y = this.y - 1
-			elseif dir == DOWN
+			elseif dir == Dir.DOWN
 				new_y = this.y + 1
-			elseif dir == LEFT
+			elseif dir == Dir.LEFT
 				new_x = this.x - 1
-			elseif dir == RIGHT
+			elseif dir == Dir.RIGHT
 				new_x = this.x + 1
 			endif
 
@@ -197,7 +169,7 @@ abstract class Ghost
 			endif
 		endfor
 
-		if best_dir != NONE
+		if best_dir != Dir.NONE
 			this.Move(best_dir, map)
 			this.dir = best_dir
 		endif
@@ -266,13 +238,13 @@ abstract class Ghost
 	def Move(dir: Direction, map: list<list<number>>)
 		var new_x = this.x
 		var new_y = this.y
-		if dir == UP
+		if dir == Dir.UP
 			new_y = this.y - 1
-		elseif dir == DOWN
+		elseif dir == Dir.DOWN
 			new_y = this.y + 1
-		elseif dir == LEFT
+		elseif dir == Dir.LEFT
 			new_x = this.x - 1
-		elseif dir == RIGHT
+		elseif dir == Dir.RIGHT
 			new_x = this.x + 1
 		endif
 
@@ -310,7 +282,7 @@ abstract class Ghost
 		var target_y = cage_y
 
 		if ghost.IsBlocked()
-			ghost.dir = NONE
+			ghost.dir = Dir.NONE
 		endif
 		this.PathFinding(map, target_x, target_y)
 	enddef
@@ -333,7 +305,7 @@ abstract class Ghost
 			target_y = len(map) - 1
 		endif
 		if ghost.IsBlocked()
-			ghost.dir = NONE
+			ghost.dir = Dir.NONE
 		endif
 		this.PathFinding(map, target_x, target_y)
 	enddef
@@ -350,16 +322,16 @@ class PinkyGhost extends Ghost
 		var target_y: number
 		var target_x: number
 
-		if pacman.dir == UP
+		if pacman.dir == Dir.UP
 			target_y = pacman.y - 4
 			target_x = pacman.x
-		elseif pacman.dir == DOWN
+		elseif pacman.dir == Dir.DOWN
 			target_y = pacman.y + 4
 			target_x = pacman.x
-		elseif pacman.dir == LEFT
+		elseif pacman.dir == Dir.LEFT
 			target_y = pacman.y
 			target_x = pacman.x - 4
-		elseif pacman.dir == RIGHT
+		elseif pacman.dir == Dir.RIGHT
 			target_y = pacman.y
 			target_x = pacman.x + 4
 		else
@@ -368,7 +340,7 @@ class PinkyGhost extends Ghost
 		endif
 
 		if pinky.IsBlocked()
-			pinky.dir = NONE
+			pinky.dir = Dir.NONE
 		endif
 		super.PathFinding(map, target_x, target_y)
 	enddef
@@ -386,7 +358,7 @@ class ClydeGhost extends Ghost
 		var target_y: number
 
 		if clyde.IsBlocked()
-			clyde.dir = NONE
+			clyde.dir = Dir.NONE
 		endif
 
 		if sqrt(pow((clyde.y - pacman.y), 2) + pow((clyde.x - pacman.x), 2)) < 9.0
@@ -413,7 +385,7 @@ class InkyGhost extends Ghost
 		var target_y: number
 
 		if clyde.IsBlocked()
-			clyde.dir = NONE
+			clyde.dir = Dir.NONE
 		endif
 		if sqrt(pow((clyde.y - pacman.y), 2) + pow((clyde.x - pacman.x), 2)) < 9.0
 			target_y = pacman.y
@@ -439,7 +411,7 @@ class BlinkyGhost extends Ghost
 		var target_y = pacman.y
 
 		if blinky.IsBlocked()
-			blinky.dir = NONE
+			blinky.dir = Dir.NONE
 		endif
 
 		super.PathFinding(map, target_x, target_y)
@@ -625,7 +597,7 @@ export class Application
 		endif
 
 		this.remain_food = 0
-		this.player = Pacman.new(15, 15, NONE)
+		this.player = Pacman.new(15, 15, Dir.NONE)
 		this.ChangeActivity(PLAY)
 		this.highscore = g:SUPRA_PACMAN_HIGHSCORE
 
@@ -651,19 +623,19 @@ export class Application
 				if j == PACMAN
 					this.player.SetPosition(len(line), len(this.map))
 				elseif j == BLINKY
-					var new_ghost = BlinkyGhost.new(NONE, EMPTY, Ghost.CHASE, BLINKY)
+					var new_ghost = BlinkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, BLINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == PINKY
-					var new_ghost = PinkyGhost.new(NONE, EMPTY, Ghost.CHASE, PINKY)
+					var new_ghost = PinkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, PINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == INKY
-					var new_ghost = InkyGhost.new(NONE, EMPTY, Ghost.CHASE, INKY)
+					var new_ghost = InkyGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, INKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == CLYDE
-					var new_ghost = ClydeGhost.new(NONE, EMPTY, Ghost.CHASE, CLYDE)
+					var new_ghost = ClydeGhost.new(Dir.NONE, EMPTY, Ghost.CHASE, CLYDE)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == CAGE
@@ -838,16 +810,16 @@ export class Application
 		# Play Activity
 		if this.activity == PLAY
 			if key ==? 'w' || key == "\<up>" || key == "k"
-				this.player.dir_save = UP
+				this.player.dir_save = Dir.UP
 				return 1
 			elseif key ==? 's' || key == "\<down>" || key == "j"
-				this.player.dir_save = DOWN
+				this.player.dir_save = Dir.DOWN
 				return 1
 			elseif key ==? 'a' || key == "\<left>" || key == "h"
-				this.player.dir_save = LEFT
+				this.player.dir_save = Dir.LEFT
 				return 1
 			elseif key ==? 'd' || key == "\<right>" || key == "l"
-				this.player.dir_save = RIGHT
+				this.player.dir_save = Dir.RIGHT
 				return 1
 			endif
 		# Menu Activity
@@ -1005,50 +977,50 @@ export class Application
 		var new_x = this.player.x
 		var new_y = this.player.y
 
-		if this.player.dir_save == DOWN
+		if this.player.dir_save == Dir.DOWN
 			var p_y = this.player.y + 1
 			if p_y >= len(this.map)
 				p_y = 0
 			endif
 			if this.map[p_y][this.player.x] != WALL
-				this.player.dir = DOWN
+				this.player.dir = Dir.DOWN
 			endif
-		elseif this.player.dir_save == UP
+		elseif this.player.dir_save == Dir.UP
 			var p_y = this.player.y - 1
 			if p_y < 0
 				p_y = len(this.map) - 1
 			endif
 			if this.map[p_y][this.player.x] != WALL
-				this.player.dir = UP
+				this.player.dir = Dir.UP
 			endif
-		elseif this.player.dir_save == LEFT
+		elseif this.player.dir_save == Dir.LEFT
 			var p_x = this.player.x - 1
 			if p_x < 0
 				p_x = len(this.map[0]) - 1
 			endif
 			if this.map[this.player.y][p_x] != WALL
-				this.player.dir = LEFT
+				this.player.dir = Dir.LEFT
 			endif
-		elseif this.player.dir_save == RIGHT
+		elseif this.player.dir_save == Dir.RIGHT
 			var p_x = this.player.x + 1
 			if p_x >= len(this.map[0])
 				p_x = 0
 			endif
 			if this.map[this.player.y][p_x] != WALL
-				this.player.dir = RIGHT
+				this.player.dir = Dir.RIGHT
 			endif
 		else
 			this.player.dir = this.player.dir_save
 		endif
 
 		# Update this.player based on dir
-		if this.player.dir == UP
+		if this.player.dir == Dir.UP
 			new_y = this.player.y - 1
-		elseif this.player.dir == DOWN
+		elseif this.player.dir == Dir.DOWN
 			new_y = this.player.y + 1
-		elseif this.player.dir == LEFT
+		elseif this.player.dir == Dir.LEFT
 			new_x = this.player.x - 1
-		elseif this.player.dir == RIGHT
+		elseif this.player.dir == Dir.RIGHT
 			new_x = this.player.x + 1
 		endif
 
