@@ -463,13 +463,14 @@ export class Application
 	var level_num: number = 1
 	var directory_level: string
 	var nb_levels: number
+	var level_min: number = 1
 
 	##############################
 	## Constructor
 	##############################
-	def new(directories: string)
+	def new(directories: string, level_chose: number)
 		this.directory_level = directories
-		this.level_num = 1
+		this.level_min = level_chose
 		HideCursor()
 		this.InitializePopup()
 		this.ChangeActivity(MENU)
@@ -825,7 +826,7 @@ export class Application
 
 	def Replay()
 		this.score = 0
-		this.level_num = 1
+		this.level_num = this.level_min
 		this.InitGame()
 	enddef
 

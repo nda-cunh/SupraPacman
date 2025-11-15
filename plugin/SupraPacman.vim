@@ -6,7 +6,7 @@ if !exists('g:SUPRA_PACMAN_HIGHSCORE')
 	g:SUPRA_PACMAN_HIGHSCORE = 0
 endif
 
-def g:Run_Pacman(level_path: string = '')
+def g:Run_Pacman(level_path: string = '', nb_level: number = 1)
 	var path: string
 
 	if level_path == ''
@@ -16,7 +16,7 @@ def g:Run_Pacman(level_path: string = '')
 		path = level_path
 	endif
 
-	var myapp = App.Application.new(path)
+	var myapp = App.Application.new(path, nb_level)
 
 	myapp.Run()
 enddef
