@@ -16,22 +16,32 @@ export class ClydeGhost extends Ghost
 	enddef
 
 	def GhostMove(map: list<list<number>>, pacman: Pacman)
-		var clyde = this
+		const ghost = this
 		var target_x: number
 		var target_y: number
 
-		if clyde.IsBlocked()
-			clyde.dir = Dir.NONE
+		if ghost.IsBlocked()
+			ghost.dir = Dir.NONE
 		endif
 
-		if sqrt(pow((clyde.y - pacman.y), 2) + pow((clyde.x - pacman.x), 2)) < 9.0
-			target_y = pacman.y
-			target_x = pacman.x
+		if this.state == Ghost.SCATTER
+			# Target bottom-left corner
+			target_x = 1
+			target_y = ghost.len_map - 2
+			super.PathFinding(map, target_x, target_y)
 		else
-			target_y = 0
-			target_x = len(map[0]) - 1
+			const distance_squared = pow((ghost.y - pacman.y), 2) + pow((ghost.x - pacman.x), 2)
+			const distance = sqrt(distance_squared)
+
+			if distance < 9.0
+				target_x = 1
+				target_y = ghost.len_map - 2
+			else
+				target_y = pacman.y
+				target_x = pacman.x
+			endif
+			super.PathFinding(map, target_x, target_y)
 		endif
-		super.PathFinding(map, target_x, target_y)
 	enddef
 endclass
 

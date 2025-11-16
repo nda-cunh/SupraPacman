@@ -20,27 +20,36 @@ export class PinkyGhost extends Ghost
 		var target_y: number
 		var target_x: number
 
-		if pacman.dir == Dir.UP
-			target_y = pacman.y - 4
-			target_x = pacman.x
-		elseif pacman.dir == Dir.DOWN
-			target_y = pacman.y + 4
-			target_x = pacman.x
-		elseif pacman.dir == Dir.LEFT
-			target_y = pacman.y
-			target_x = pacman.x - 4
-		elseif pacman.dir == Dir.RIGHT
-			target_y = pacman.y
-			target_x = pacman.x + 4
-		else
-			target_y = pacman.y
-			target_x = pacman.x
-		endif
-
 		if pinky.IsBlocked()
 			pinky.dir = Dir.NONE
 		endif
-		super.PathFinding(map, target_x, target_y)
+		
+		if this.state == Ghost.SCATTER
+			# Target top-left corner
+			target_x = 1
+			target_y = 1
+			super.PathFinding(map, target_x, target_y)
+		else
+			if pacman.dir == Dir.UP
+				target_y = pacman.y - 4
+				target_x = pacman.x
+			elseif pacman.dir == Dir.DOWN
+				target_y = pacman.y + 4
+				target_x = pacman.x
+			elseif pacman.dir == Dir.LEFT
+				target_y = pacman.y
+				target_x = pacman.x - 4
+			elseif pacman.dir == Dir.RIGHT
+				target_y = pacman.y
+				target_x = pacman.x + 4
+			else
+				target_y = pacman.y
+				target_x = pacman.x
+			endif
+			super.PathFinding(map, target_x, target_y)
+		endif
+
+
 	enddef
 endclass
 

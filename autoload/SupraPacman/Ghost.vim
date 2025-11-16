@@ -17,9 +17,13 @@ export abstract class Ghost
 	var x: number
 	var id: number
 	var dir: Direction
-	var state: number
+	public var state: number
 	var real_id: number
 	var timer_isblue = 0
+	# For Scatter and Chase modes
+	var timer_mode = 0
+	var cycle_mode = 1
+	# Map size
 	var len_map_x: number
 	var len_map: number
 	public var last_y: number
@@ -40,6 +44,54 @@ export abstract class Ghost
 		this.state = Ghost.CHASE
 		this.id = id
 		this.real_id = id
+		this.RunScatterChaseTimer(0)
+	enddef
+
+	def RunScatterChaseTimer(not_used: number)
+		if !this.IsNormal()
+			# If the ghost is blue or eaten, do not change mode
+			timer_stop(this.timer_mode)
+			this.timer_mode = timer_start(500, this.RunScatterChaseTimer, {repeat: 0})
+			return
+		endif
+		var time: number
+
+		if this.cycle_mode == 1
+			time = 6000
+		elseif this.cycle_mode == 2
+			time = 18000
+		elseif this.cycle_mode == 3
+			time = 6000
+		elseif this.cycle_mode == 4
+			time = 18000
+		elseif this.cycle_mode == 5
+			time = 4500
+		elseif this.cycle_mode == 6
+			time = 18000
+		elseif this.cycle_mode == 7
+			time = 4500 
+		else
+			this.state = Ghost.CHASE
+			this.id = this.real_id
+			return
+		endif
+
+		if this.cycle_mode % 2 == 1
+			this.state = Ghost.SCATTER
+		else
+			this.state = Ghost.CHASE
+		endif
+
+		if this.cycle_mode >= 8
+			this.state = Ghost.CHASE
+		endif
+
+		this.cycle_mode += 1
+
+		if this.timer_mode != 0
+			timer_stop(this.timer_mode)
+		endif
+		this.timer_mode = timer_start(time, this.RunScatterChaseTimer, {repeat: 0})
 	enddef
 
 	def AddMapSize(len_map_x: number, len_map_y: number)
@@ -151,9 +203,9 @@ export abstract class Ghost
 		return this.state == Ghost.FRIGHTENED
 	enddef
 
-	# def IsScatter(): bool
-		# return this.state == Ghost.SCATTER
-	# enddef
+	def IsScatter(): bool
+		return this.state == Ghost.SCATTER
+	enddef
 
 	def IsChase(): bool
 		return this.state == Ghost.CHASE
@@ -167,10 +219,14 @@ export abstract class Ghost
 		this.id = this.real_id
 	enddef
 
-	# def SetScatter() # Not used now
-		# this.state = Ghost.SCATTER
-		# this.id = this.real_id
-	# enddef
+	def SetScatter() # Not used now
+		this.state = Ghost.SCATTER
+		this.id = this.real_id
+	enddef
+
+	def IsNormal(): bool
+		return this.state == Ghost.CHASE || this.state == Ghost.SCATTER
+	enddef
 
 
 
@@ -239,7 +295,7 @@ export abstract class Ghost
 		endif
 		if new_y <= 0
 			new_y = this.len_map - 1
-		elseif new_y >= this.len_map
+		elseif new_y >= this.len_map - 1
 			new_y = 0
 		endif
 

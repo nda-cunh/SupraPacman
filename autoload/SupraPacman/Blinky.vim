@@ -24,7 +24,14 @@ export class BlinkyGhost extends Ghost
 			blinky.dir = Dir.NONE
 		endif
 
-		super.PathFinding(map, target_x, target_y)
+		if this.state == Ghost.SCATTER
+			# Target top-right corner
+			target_x = blinky.len_map_x - 2
+			target_y = 1
+			super.PathFinding(map, target_x, target_y)
+		else
+			super.PathFinding(map, target_x, target_y)
+		endif
 	enddef
 endclass
 

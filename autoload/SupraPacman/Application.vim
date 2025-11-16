@@ -374,7 +374,7 @@ export class Application
 					if rnd >= 1 && rnd <= 2
 						g.GhostMoveFrightened(this.map, this.player)
 					endif
-				elseif g.IsChase() || g.IsFrightened() # TODO || g.IsScatter()
+				elseif g.IsNormal() || g.IsFrightened()
 					g.GhostMove(this.map, this.player)
 				endif
 
@@ -384,7 +384,7 @@ export class Application
 					g.is_block = 0
 				endif
 				if g.y == this.player.y && g.x == this.player.x
-					if g.IsChase() # TODO || g.IsScatter()
+					if g.IsNormal() 
 						this.GameOver()
 					elseif g.IsFrightened()
 						this.IncreaseScore(200)
@@ -505,7 +505,7 @@ export class Application
 				if g.IsFrightened()
 					this.score += 200
 					g.SetEaten()
-				elseif g.IsChase() # TODO || g.IsScatter()
+				elseif g.IsNormal() 
 					this.GameOver()
 				endif
 			endif
