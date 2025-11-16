@@ -41,6 +41,8 @@ export class Application
 	var map_opti: list<list<string>> = []
 	var ghosts: list<Ghost>
 	var timer_ghost: number
+	var combo_ghost: number = 1
+	var timer_isblue: number
 	var cage_pos: list<number>
 	var lst_entity: list<list<number>>
 	var remain_food: number
@@ -202,6 +204,7 @@ export class Application
 			return
 		endif
 
+		this.combo_ghost = 1
 		this.remain_food = 0
 		this.player = Pacman.new()
 		this.ChangeActivity(Activity.PLAY)
@@ -388,7 +391,7 @@ export class Application
 					if g.IsNormal() 
 						this.GameOver()
 					elseif g.IsFrightened()
-						this.IncreaseScore(200)
+						this.IncreaseScore(200 * this.combo_ghost)
 						g.SetEaten()
 					endif
 				endif
@@ -659,6 +662,9 @@ export class Application
 			# Set all ghosts to FRIGHTENED
 			for g in this.ghosts
 				g.SetFrightened()
+				this.timer_isblue = timer_start(6000, (_) => {
+					this.combo_ghost = 1
+				}, {repeat: 1})
 			endfor
 		# FOOD1 to FOOD8
 		elseif e_under_pacman >= Tile.FOOD1 && e_under_pacman <= Tile.FOOD8
