@@ -423,33 +423,18 @@ export class Application
 				return 1
 			elseif key ==? 'd' || key == "\<right>" || key == "l"
 				this.player.dir_save = Dir.RIGHT
-				return 1
 			endif
 		# Menu Activity
 		elseif this.activity == Activity.MENU
 			if key ==? "\<Enter>"
 				this.Replay()
 			elseif key ==? "\<LeftMouse>" || key ==? "\<2-LeftMouse>" || key ==? "\<3-LeftMouse>" || key ==? "\<4-LeftMouse>" || key ==? "\<5-LeftMouse>"
-				var bufnr = winbufnr(wid)
-				var pos = getmousepos()
-				if pos.winid != wid
-					return 0
+				const value = Utils.HandleClickPopup(wid, ['Play', 'Quit'])
+				if value == 0
+					this.Replay()
+				elseif value == 1
+					this.Close()
 				endif
-				try
-				var line = getbufline(bufnr, pos.winrow - 2, pos.winrow + 1)
-				for i in line
-					if stridx(i, 'Play') != -1
-						this.Replay()
-						this.ChangeActivity(Activity.PLAY)
-						break
-					elseif stridx(i, 'Quit') != -1
-						this.Close()
-						return 0
-					endif
-				endfor
-				catch
-				endtry
-				return 1
 			endif
 		elseif this.activity == Activity.NEXTLEVEL
 			if key ==? "\<Enter>"
@@ -457,51 +442,26 @@ export class Application
 				this.InitGame()
 				return 1
 			elseif key ==? "\<LeftMouse>" || key ==? "\<2-LeftMouse>" || key ==? "\<3-LeftMouse>" || key ==? "\<4-LeftMouse>" || key ==? "\<5-LeftMouse>"
-				var bufnr = winbufnr(wid)
-				var pos = getmousepos()
-				if pos.winid != wid
-					return 0
+				const value = Utils.HandleClickPopup(wid, ['Next Level', 'Quit'])
+				if value == 0
+					this.level_num += 1
+					this.InitGame()
+				elseif value == 1
+					this.Close()
 				endif
-				try
-					var line = getbufline(bufnr, pos.winrow - 2, pos.winrow + 1)
-					for i in line
-						if stridx(i, 'Next Level') != -1
-							this.level_num += 1
-							this.InitGame()
-							break
-						elseif stridx(i, 'Quit') != -1
-							this.Close()
-							return 0
-						endif
-					endfor
-				catch
-				endtry
-				return 1
 			endif
 		elseif this.activity == Activity.GAMEOVER
 			if key ==? "\<Enter>"
 				this.Replay()
 				return 1
 			elseif key ==? "\<LeftMouse>" || key ==? "\<2-LeftMouse>" || key ==? "\<3-LeftMouse>" || key ==? "\<4-LeftMouse>" || key ==? "\<5-LeftMouse>"
-				var bufnr = winbufnr(wid)
-				var pos = getmousepos()
-				if pos.winid != wid
+				const value = Utils.HandleClickPopup(wid, ['Retry', 'Quit'])
+				if value == 0
+					this.Replay()
+				elseif value == 1 
+					this.Close()
 					return 0
 				endif
-				try
-					var line = getbufline(bufnr, pos.winrow - 2, pos.winrow + 1)
-					for i in line
-						if stridx(i, 'Retry') != -1
-							this.Replay()
-							break
-						elseif stridx(i, 'Quit') != -1
-							this.Close()
-							return 0
-						endif
-					endfor
-				catch
-				endtry
-				return 1
 			endif
 		endif
 
@@ -549,7 +509,6 @@ export class Application
 			endfor
 			add(print_map, join(line_chars, ''))
 		endfor
-
 		popup_settext(this.popup, print_map)
 	enddef
 
@@ -567,6 +526,8 @@ export class Application
 		# clear player from map
 		this.map[this.player.y][this.player.x] = Tile.EMPTY
 	enddef
+
+
 
 	##############################
 	## Update Game Logic
@@ -739,6 +700,7 @@ export class Application
 		popup_settext(this.popup, str)
 	enddef
 
+
 	###############################
 	## Game Over Screen
 	################################
@@ -800,8 +762,9 @@ export class Application
 		popup_settext(this.popup, gameover)
 	enddef
 
+
 	###############################
-	## Game Over Screen
+	## Next Level Screen
 	################################
 	def DrawNextLevel()
 		const ascii_txt = [

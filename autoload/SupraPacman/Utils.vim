@@ -27,6 +27,27 @@ export def ShowCursor()
 	endif
 enddef
 
+export def HandleClickPopup(wid: number, chooses: list<string>): number 
+	var bufnr = winbufnr(wid)
+	var pos = getmousepos()
+	if pos.winid != wid
+		return -1
+	endif
+	try
+	var line = getbufline(bufnr, pos.winrow - 2, pos.winrow + 1)
+	for i in line
+		var nb = 0
+		for value in chooses
+			if stridx(i, value) != -1
+				return nb
+			endif
+			nb += 1
+		endfor
+	endfor
+	catch
+	endtry
+	return -1
+enddef
 
 export def LoadMapFromFile(file_path: string): list<list<number>>
 	const lines = readfile(file_path)
