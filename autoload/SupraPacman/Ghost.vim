@@ -172,6 +172,25 @@ export abstract class Ghost
 		# this.id = this.real_id
 	# enddef
 
+
+
+	def EndTimerFrightened(timer: number)
+		var counter = 0
+		this.timer_isblue = timer_start(200, (_) => {
+			counter += 1
+			if this.id == Tile.GHOST_EAT
+				this.id = this.real_id
+			else
+				this.id = Tile.GHOST_EAT
+			endif
+			if counter == 10
+				this.SetChase()
+				timer_stop(this.timer_isblue)
+				this.timer_isblue = 0
+			endif
+		}, {repeat: 10})
+	enddef
+
 	def SetFrightened() # BLUE
 		if this.IsEaten()
 			return
@@ -180,18 +199,18 @@ export abstract class Ghost
 			if this.timer_isblue != 0
 				timer_stop(this.timer_isblue)
 			endif
-			this.timer_isblue = timer_start(8000, (_) => {
-				if this.state == Ghost.FRIGHTENED
-					this.SetChase()
-				endif
-				this.timer_isblue = 0
-			}, {repeat: 0})
+			this.timer_isblue = timer_start(5000, this.EndTimerFrightened, {repeat: 0})
 		endif
 		this.state = Ghost.FRIGHTENED
 		this.id = Tile.GHOST_EAT
 	enddef
 
 	def SetEaten()
+		# stop the frightened timer if running
+		if this.timer_isblue != 0
+			timer_stop(this.timer_isblue)
+			this.timer_isblue = 0
+		endif
 		this.state = Ghost.EATEN
 		this.id = Tile.GHOST_DEAD
 	enddef
