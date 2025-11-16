@@ -1,6 +1,8 @@
 Just run the command `:Pacman` 
 
-![pacman](https://github.com/user-attachments/assets/0b9bbc0a-41a3-435e-9ac6-caa6f74a3d57)
+![pacman](https://github.com/user-attachments/assets/eed16018-f578-44d1-bc38-d4535401565b)
+![pacman_demo](https://github.com/user-attachments/assets/103145f9-d0b2-49f0-9dfb-0d8d900d406d)
+
 
 ### SCORE:
 - 🔸 10 points (Small Pellet)
