@@ -1,6 +1,11 @@
-Just run the command `:Pacman` 
+# Supra-Pacman
 
-![pacman](https://github.com/user-attachments/assets/eed16018-f578-44d1-bc38-d4535401565b)
+> Just run the command `:Pacman` 
+
+## MENU
+<img width="927" height="740" alt="Screenshot from 2025-11-16 12-34-58" src="https://github.com/user-attachments/assets/7d5ca936-22e1-4111-9ec9-bb193f27aeed" />
+
+## Demo
 ![pacman_demo](https://github.com/user-attachments/assets/103145f9-d0b2-49f0-9dfb-0d8d900d406d)
 
 
