@@ -6,6 +6,8 @@ if !exists('g:SUPRA_PACMAN_HIGHSCORE')
 	g:SUPRA_PACMAN_HIGHSCORE = 0
 endif
 
+command Pacman call g:Run_Pacman()
+
 def g:Run_Pacman(level_path: string = '', nb_level: number = 1)
 	var path: string
 
