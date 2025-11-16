@@ -13,6 +13,8 @@ type Pacman = Pac.Pacman
 
 export abstract class Ghost
 	# Ghost properties
+	var init_x: number
+	var init_y: number
 	var y: number
 	var x: number
 	var id: number
@@ -106,6 +108,29 @@ export abstract class Ghost
 	def SetPosition(x: number, y: number)
 		this.y = y
 		this.x = x
+	enddef
+
+	def InitPosition(x: number, y: number)
+		this.init_x = x
+		this.init_y = y
+		this.SetPosition(x, y)
+	enddef
+
+	def Reset()
+		this.SetPosition(this.init_x, this.init_y)
+		this.dir = Dir.NONE
+		this.is_block = 0
+		this.state = Ghost.CHASE
+		this.id = this.real_id
+		if this.timer_isblue != 0
+			timer_stop(this.timer_isblue)
+			this.timer_isblue = 0
+		endif
+		if this.timer_mode != 0
+			timer_stop(this.timer_mode)
+		endif
+		this.cycle_mode = 1
+		this.RunScatterChaseTimer(0)
 	enddef
 
 

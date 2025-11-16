@@ -34,6 +34,7 @@ export class Application
 	var popup: number
 	var player: Pacman
 	var score: number
+	var lifes: number
 	var highscore: number
 	var activity = Activity.MENU
 	var map: list<list<number>> = []
@@ -202,7 +203,7 @@ export class Application
 		endif
 
 		this.remain_food = 0
-		this.player = Pacman.new(15, 15, Dir.NONE)
+		this.player = Pacman.new()
 		this.ChangeActivity(Activity.PLAY)
 		this.highscore = g:SUPRA_PACMAN_HIGHSCORE
 
@@ -227,22 +228,22 @@ export class Application
 			var line = []
 			for j in i
 				if j == Tile.PACMAN
-					this.player.SetPosition(len(line), len(this.map))
+					this.player.InitPosition(len(line), len(this.map))
 				elseif j == Tile.BLINKY
 					var new_ghost = BlinkyGhost.new(Dir.NONE, Tile.BLINKY)
-					new_ghost.SetPosition(len(line), len(this.map))
+					new_ghost.InitPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.PINKY
 					var new_ghost = PinkyGhost.new(Dir.NONE, Tile.PINKY)
-					new_ghost.SetPosition(len(line), len(this.map))
+					new_ghost.InitPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.INKY
 					var new_ghost = InkyGhost.new(Dir.NONE, Tile.INKY)
-					new_ghost.SetPosition(len(line), len(this.map))
+					new_ghost.InitPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.CLYDE
 					var new_ghost = ClydeGhost.new(Dir.NONE, Tile.CLYDE)
-					new_ghost.SetPosition(len(line), len(this.map))
+					new_ghost.InitPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.CAGE
 					this.cage_pos = [len(line), len(this.map)]
@@ -417,9 +418,24 @@ export class Application
 	## When the game is over or player wants to restart
 	###############################
 	def Replay()
-		this.score = 0
-		this.level_num = this.level_min
-		this.InitGame()
+		this.lifes -= 1
+		if this.lifes <= 0
+			this.score = 0
+			this.lifes = 3
+			this.level_num = this.level_min
+			this.InitGame()
+			return
+		endif
+		# Reposition player
+		this.Clear()
+		this.player.Reset()
+
+		# Reposition ghosts
+		for g in this.ghosts
+			g.Reset()
+		endfor
+
+		this.ChangeActivity(Activity.PLAY)
 	enddef
 
 	##############################
@@ -649,15 +665,24 @@ export class Application
 	enddef
 
 
-	###############################
-	## Draw Scoreboard
-	###############################
 	def DrawScore(map_print: list<string>, is_over: bool = 0)
-		const width_2 = Const.width / 2 - 14
+		const width_2 = (Const.width / 2) - 25
+		const life_remain = this.lifes
+		var str = repeat(SPRITE_LOOKUP[Tile.PACMAN], life_remain)
+		var len_life = (strcharlen(str) + (this.lifes) * 1) - 1
 
-		add(map_print, printf(' ╭─────────────╮ ╭─────────────╮%*s╭───────────────────╮', width_2, ' '))
-		add(map_print, printf(' │%-10d💰 │ │%-10d🏆 │%*s│ 󰮯  Supra Pac-Man  │', this.score, this.highscore, width_2, ' '))
-		add(map_print, printf(' ╰─────────────╯ ╰─────────────╯%*s╰───────────────────╯', width_2, ' '))
+		add(map_print, printf(' ╭────────╮ ╭─────────────╮ ╭─────────────╮%*s╭───────────────────╮', width_2, ' '))
+		add(map_print, printf(' │ %-*s│ │ %-8d 💰 │ │ %-8d 🏆 │%*s│   Supra Pac-Man   │',
+			8 + len_life,
+			str,
+			this.score,
+			this.highscore,
+			width_2,
+			' '
+		))
+		add(map_print, printf(' ╰────────╯ ╰─────────────╯ ╰─────────────╯%*s╰───────────────────╯', width_2, ' '))
+		add(map_print, repeat('─', Const.width))
+
 	enddef
 
 
@@ -715,24 +740,36 @@ export class Application
 	## Game Over Screen
 	################################
 	def DrawGameOver()
-		const ascii_txt = [
-		'  ░██████                                        ',
-		' ░██   ░██                                       ',
-		'░██         ░██████   ░█████████████   ░███████  ',
-		'░██  █████       ░██  ░██   ░██   ░██ ░██    ░██ ',
-		'░██     ██  ░███████  ░██   ░██   ░██ ░█████████ ',
-		' ░██  ░███ ░██   ░██  ░██   ░██   ░██ ░██        ',
-		'  ░█████░█  ░█████░██ ░██   ░██   ░██  ░███████  ',
-		'                                                 ',
-		'        ░████',
-		'     ░██   ░██',
-		'    ░██     ░██ ░██    ░██  ░███████  ░██░████',
-		'    ░██     ░██ ░██    ░██ ░██    ░██ ░███',
-		'    ░██     ░██  ░██  ░██  ░█████████ ░██',
-		'     ░██   ░██    ░██░██   ░██        ░██',
-		'      ░██████      ░███     ░███████  ░██',
-		'']
-
+		var ascii_txt: list<string>
+		if this.lifes == 1
+			ascii_txt = [
+			'  ░██████                                        ',
+			' ░██   ░██                                       ',
+			'░██         ░██████   ░█████████████   ░███████  ',
+			'░██  █████       ░██  ░██   ░██   ░██ ░██    ░██ ',
+			'░██     ██  ░███████  ░██   ░██   ░██ ░█████████ ',
+			' ░██  ░███ ░██   ░██  ░██   ░██   ░██ ░██        ',
+			'  ░█████░█  ░█████░██ ░██   ░██   ░██  ░███████  ',
+			'                                                 ',
+			'        ░████',
+			'     ░██   ░██',
+			'    ░██     ░██ ░██    ░██  ░███████  ░██░████',
+			'    ░██     ░██ ░██    ░██ ░██    ░██ ░███',
+			'    ░██     ░██  ░██  ░██  ░█████████ ░██',
+			'     ░██   ░██    ░██░██   ░██        ░██',
+			'      ░██████      ░███     ░███████  ░██',
+			'']
+		else
+			ascii_txt = [
+			'░█████████  ░██████████ ░██████████░█████████  ░██     ░██',
+			'░██     ░██ ░██             ░██    ░██     ░██  ░██   ░██',
+			'░██     ░██ ░██             ░██    ░██     ░██   ░██ ░██',
+			'░█████████  ░█████████      ░██    ░█████████     ░████',
+			'░██   ░██   ░██             ░██    ░██   ░██       ░██',
+			'░██    ░██  ░██             ░██    ░██    ░██      ░██',
+			'░██     ░██ ░██████████     ░██    ░██     ░██     ░██',
+			'']
+		endif
 		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[0]) / 2))
 		var gameover = []
 
@@ -759,6 +796,7 @@ export class Application
 			add(gameover, space_center_btn .. button_quit[i])
 		endfor
 		# Print the highscore and Score
+		var lifes_str = '❤️  Lifes: ' .. repeat(SPRITE_LOOKUP[Tile.PACMAN], this.lifes)
 		var highscore_str = '🏆 Highscore: ' .. this.highscore
 		var score_str = '💰 Score: ' .. this.score
 		var txt_len = len(gameover)
@@ -766,6 +804,9 @@ export class Application
 		for i in range(txt_len, Const.height - 2)
 			add(gameover, '')
 		endfor
+		if this.lifes != 1
+			add(gameover, lifes_str)
+		endif
 		add(gameover, score_str)
 		add(gameover, highscore_str)
 
