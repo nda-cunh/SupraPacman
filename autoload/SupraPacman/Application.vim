@@ -117,7 +117,7 @@ export class Application
 		setwinvar(this.popup, '&modifiable', 1)
 		setwinvar(this.popup, '&nu', 0)
 		setwinvar(this.popup, '&relativenumber', 0)
-		setwinvar(this.popup, "&updatetime", 2500)
+		setwinvar(this.popup, "&updatetime", 25000)
 		setwinvar(this.popup, '&signcolumn', 'yes')
 		setwinvar(this.popup, '&wrap', 0)
 		setwinvar(this.popup, '&syntax', 'on')
@@ -174,6 +174,7 @@ export class Application
 			endif
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		elseif this.activity == Activity.CONGRATULATIONS
+			this.score += (10000 * this.lifes)
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
 				this.timer_ghost = 0
@@ -196,7 +197,6 @@ export class Application
 
 		# if level number is greater than number of levels, go to
 		# congratulations
-
 		if this.level_num > this.nb_levels
 			this.ChangeActivity(Activity.CONGRATULATIONS)
 			return
@@ -413,6 +413,11 @@ export class Application
 		this.ChangeActivity(Activity.GAMEOVER)
 	enddef
 
+	def NewLevel()
+		this.score += 1500 * this.level_num
+		this.level_num += 1
+		this.InitGame()
+	enddef
 	###############################
 	## Replay Game
 	## When the game is over or player wants to restart
@@ -471,14 +476,12 @@ export class Application
 			endif
 		elseif this.activity == Activity.NEXTLEVEL
 			if key ==? "\<Enter>"
-				this.level_num += 1
-				this.InitGame()
+				this.NewLevel()
 				return 1
 			elseif key ==? "\<LeftMouse>" || key ==? "\<2-LeftMouse>" || key ==? "\<3-LeftMouse>" || key ==? "\<4-LeftMouse>" || key ==? "\<5-LeftMouse>"
 				const value = Utils.HandleClickPopup(wid, ['Next Level', 'Quit'])
 				if value == 0
-					this.level_num += 1
-					this.InitGame()
+					this.NewLevel()
 				elseif value == 1
 					this.Close()
 				endif
@@ -761,6 +764,10 @@ export class Application
 			'']
 		else
 			ascii_txt = [
+			'',
+			'',
+			'',
+			'',
 			'░█████████  ░██████████ ░██████████░█████████  ░██     ░██',
 			'░██     ░██ ░██             ░██    ░██     ░██  ░██   ░██',
 			'░██     ░██ ░██             ░██    ░██     ░██   ░██ ░██',
@@ -770,7 +777,7 @@ export class Application
 			'░██     ░██ ░██████████     ░██    ░██     ░██     ░██',
 			'']
 		endif
-		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[0]) / 2))
+		const space_center = repeat(' ', (Const.width / 2) - (strcharlen(ascii_txt[7]) / 2))
 		var gameover = []
 
 		add(gameover, '')
