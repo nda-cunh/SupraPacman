@@ -4,13 +4,11 @@ vim9script
 ## Const and Variables
 ################################
 
-var t_ve: string
-var hlcursor: dict<any>
-
+import autoload './Utils.vim' as Utils
 import autoload './Direction.vim' as Dir
 import autoload './Pacman.vim' as Pac
 import autoload './Constants.vim' as Const
-import autoload './Activity.vim' as Activity 
+import autoload './Activity.vim' as Activity
 import autoload './TileType.vim' as Tile
 import autoload './Ghost.vim' as AGhost
 import autoload './Pinky.vim' as Pinky
@@ -21,7 +19,7 @@ import autoload './Clyde.vim' as Clyde
 type Direction = Dir.Direction
 type Pacman = Pac.Pacman
 type Ghost = AGhost.Ghost
-type PinkyGhost = Pinky.PinkyGhost 
+type PinkyGhost = Pinky.PinkyGhost
 type BlinkyGhost = Blinky.BlinkyGhost
 type InkyGhost = Inky.InkyGhost
 type ClydeGhost = Clyde.ClydeGhost
@@ -56,7 +54,7 @@ export class Application
 	def new(directories: string, level_chose: number)
 		this.directory_level = directories
 		this.level_min = level_chose
-		HideCursor()
+		Utils.HideCursor()
 		this.InitializePopup()
 		this.ChangeActivity(Activity.MENU)
 		# count number of levels in directory
@@ -64,6 +62,9 @@ export class Application
 		this.nb_levels = len(files)
 	enddef
 
+	###############################
+	## Close Application
+	###############################
 	def Close()
 		if this.timer != 0
 			timer_stop(this.timer)
@@ -73,7 +74,7 @@ export class Application
 			timer_stop(this.timer_ghost)
 			this.timer_ghost = 0
 		endif
-		ShowCursor()
+		Utils.ShowCursor()
 		popup_close(this.popup)
 	enddef
 
@@ -125,6 +126,9 @@ export class Application
 	enddef
 
 
+	###############################
+	## Run Game Loop
+	###############################
 	def Run()
 		if this.timer != 0
 			timer_stop(this.timer)
@@ -148,6 +152,10 @@ export class Application
 		}, {repeat: -1})
 	enddef
 
+	################################
+	## Change Activity
+	## Handles transitions between different game states
+	################################
 	def ChangeActivity(new_activity: number)
 		this.activity = new_activity
 
@@ -172,23 +180,6 @@ export class Application
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		endif
 	enddef
-
-	def LoadMapFromFile(file_path: string): list<list<number>>
-		const lines = readfile(file_path)
-		# the format is just number separate by space
-		# and each line is a new row
-		var map: list<list<number>> = []
-		for line in lines
-			var row: list<number> = []
-			const nums = split(line, ' ')
-			for num in nums
-				add(row, str2nr(num))
-			endfor
-			add(map, row)
-		endfor
-		return map
-	enddef
-
 
 	##########################################
 	## Initialize Game State
@@ -228,8 +219,8 @@ export class Application
 		endif
 
 		var level: list<list<number>>
-		level = this.LoadMapFromFile(this_level_file)
-		for i in level 
+		level = Utils.LoadMapFromFile(this_level_file)
+		for i in level
 			var line = []
 			for j in i
 				if j == Tile.PACMAN
@@ -528,8 +519,7 @@ export class Application
 		var print_map = []
 		this.DrawScore(print_map)
 
-		# draw all entities
-
+		# Draw player
 		this.map[this.player.y][this.player.x] = Tile.PACMAN
 		# draw ghost
 		for g in this.ghosts
@@ -586,12 +576,14 @@ export class Application
 		# Update Player Position
 		const old_x = this.player.x
 		const old_y = this.player.y
+		const len_map = len(this.map)
+		const len_map_x = len(this.map[0])
 		var new_x = this.player.x
 		var new_y = this.player.y
 
 		if this.player.dir_save == Dir.DOWN
 			var p_y = this.player.y + 1
-			if p_y >= len(this.map)
+			if p_y >= len_map
 				p_y = 0
 			endif
 			if this.map[p_y][this.player.x] != Tile.WALL
@@ -600,7 +592,7 @@ export class Application
 		elseif this.player.dir_save == Dir.UP
 			var p_y = this.player.y - 1
 			if p_y < 0
-				p_y = len(this.map) - 1
+				p_y = len_map - 1
 			endif
 			if this.map[p_y][this.player.x] != Tile.WALL
 				this.player.dir = Dir.UP
@@ -608,14 +600,14 @@ export class Application
 		elseif this.player.dir_save == Dir.LEFT
 			var p_x = this.player.x - 1
 			if p_x < 0
-				p_x = len(this.map[0]) - 1
+				p_x = len_map_x - 1
 			endif
 			if this.map[this.player.y][p_x] != Tile.WALL
 				this.player.dir = Dir.LEFT
 			endif
 		elseif this.player.dir_save == Dir.RIGHT
 			var p_x = this.player.x + 1
-			if p_x >= len(this.map[0])
+			if p_x >= len_map_x
 				p_x = 0
 			endif
 			if this.map[this.player.y][p_x] != Tile.WALL
@@ -638,13 +630,13 @@ export class Application
 
 		# if the player hit the bound of the this.map, teleport him to the other side
 		if new_x < 0
-			new_x = len(this.map[0]) - 1
-		elseif new_x >= len(this.map[0])
+			new_x = len_map_x - 1
+		elseif new_x >= len_map_x
 			new_x = 0
 		endif
 		if new_y < 0
-			new_y = len(this.map) - 1
-		elseif new_y >= len(this.map)
+			new_y = len_map - 1
+		elseif new_y >= len_map
 			new_y = 0
 		endif
 
@@ -906,28 +898,3 @@ export class Application
 		popup_settext(this.popup, str)
 	enddef
 endclass
-
-
-# Use to hide the cursor while popups active
-def HideCursor()
-    # terminal cursor
-    t_ve = &t_ve
-    setlocal t_ve=
-    # gui cursor
-    if len(hlget('Cursor')) > 0
-        hlcursor = hlget('Cursor')[0]
-        hlset([{name: 'Cursor', cleared: true}])
-    endif
-enddef
-
-# Use to restore cursor when closing popups
-def ShowCursor()
-    # terminal cursor
-    if &t_ve != t_ve
-        &t_ve = t_ve
-    endif
-    # gui cursor
-    if len(hlget('Cursor')) > 0 && get(hlget('Cursor')[0], 'cleared', false)
-        hlset([hlcursor])
-    endif
-enddef
