@@ -13,17 +13,18 @@ type Pacman = Pac.Pacman
 
 export abstract class Ghost
 	# Ghost properties
-	public var y: number
-	public var x: number
+	var y: number
+	var x: number
+	var id: number
+	var dir: Direction
+	var state: number
+	var real_id: number
+	var timer_isblue = 0
+	var len_map_x: number
+	var len_map: number
 	public var last_y: number
 	public var last_x: number
-	public var dir: Direction
-	public var walk_on: number
-	public var state: number
-	public var id: number
-	public var real_id: number
 	public var is_block = 0
-	var timer_isblue = 0
 
 	# Constant for states
 	public static const CHASE: number = 0  # 🟥
@@ -34,12 +35,16 @@ export abstract class Ghost
 	##############################
 	## Constructor
 	##############################
-	def Ghost(dir: Direction, walk_on: number, state: number, id: number)
+	def Ghost(dir: Direction, id: number)
 		this.dir = dir
-		this.walk_on = walk_on
-		this.state = state
+		this.state = Ghost.CHASE
 		this.id = id
 		this.real_id = id
+	enddef
+
+	def AddMapSize(len_map_x: number, len_map_y: number)
+		this.len_map_x = len_map_x
+		this.len_map = len_map_y
 	enddef
 
 
@@ -58,8 +63,8 @@ export abstract class Ghost
 	def PathFinding(map: list<list<number>>, target_x: number, target_y: number)
 		var possible_dirs: list<Direction> = []
 
-		var width_max = len(map[0])
-		var height_max = len(map)
+		var width_max = this.len_map_x
+		var height_max = this.len_map
 
 		# --- Dir.UP 
 		if this.y > 0 && map[this.y - 1][this.x] != Tile.WALL && this.dir != Dir.DOWN
@@ -168,6 +173,9 @@ export abstract class Ghost
 	# enddef
 
 	def SetFrightened() # BLUE
+		if this.IsEaten()
+			return
+		endif
 		if this.state == Ghost.CHASE || this.state == Ghost.SCATTER || this.state == Ghost.FRIGHTENED
 			if this.timer_isblue != 0
 				timer_stop(this.timer_isblue)
@@ -206,13 +214,13 @@ export abstract class Ghost
 
 		# if the ghost hit the bound of the this.map, teleport him to the other side
 		if new_x < 0
-			new_x = len(map[0]) - 1
-		elseif new_x >= len(map[0])
+			new_x = this.len_map_x - 1
+		elseif new_x >= this.len_map_x
 			new_x = 0
 		endif
-		if new_y < 0
-			new_y = len(map) - 1
-		elseif new_y >= len(map)
+		if new_y <= 0
+			new_y = this.len_map - 1
+		elseif new_y >= this.len_map
 			new_y = 0
 		endif
 
@@ -230,17 +238,11 @@ export abstract class Ghost
 		endif
 	enddef
 
-
-	abstract def GhostMove(map: list<list<number>>, pacman: Pacman)
 	def GhostMoveToGoal(map: list<list<number>>, cage_x: number, cage_y: number)
-		var ghost = this
-		var target_x = cage_x
-		var target_y = cage_y
-
-		if ghost.IsBlocked()
-			ghost.dir = Dir.NONE
+		if this.IsBlocked()
+			this.dir = Dir.NONE
 		endif
-		this.PathFinding(map, target_x, target_y)
+		this.PathFinding(map, cage_x, cage_y)
 	enddef
 
 	# Move when ghost is blue (frightened)
@@ -253,16 +255,21 @@ export abstract class Ghost
 		if ghost.x < pacman.x
 			target_x = 0
 		else
-			target_x = len(map[0]) - 1
+			target_x = this.len_map_x - 1
 		endif
 		if ghost.y < pacman.y
 			target_y = 0
 		else
-			target_y = len(map) - 1
+			target_y = this.len_map - 1
 		endif
 		if ghost.IsBlocked()
 			ghost.dir = Dir.NONE
 		endif
 		this.PathFinding(map, target_x, target_y)
 	enddef
+
+	###########################
+	## Abstract Method for Ghost Movement
+	###########################
+	abstract def GhostMove(map: list<list<number>>, pacman: Pacman)
 endclass

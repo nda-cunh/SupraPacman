@@ -11,8 +11,8 @@ type Ghost = AGhost.Ghost
 
 export class ClydeGhost extends Ghost
 	# Additional properties or methods specific to Blinky can be added here
-	def new(dir: Direction, walk_on: number, state: number, id: number)
-		super.Ghost(dir, walk_on, state, id)
+	def new(dir: Direction, id: number)
+		super.Ghost(dir, id)
 	enddef
 
 	def GhostMove(map: list<list<number>>, pacman: Pacman)

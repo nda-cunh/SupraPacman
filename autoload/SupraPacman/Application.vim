@@ -47,6 +47,8 @@ export class Application
 	var directory_level: string
 	var nb_levels: number
 	var level_min: number = 1
+	var len_map: number
+	var len_map_x: number
 
 	##############################
 	## Constructor
@@ -83,9 +85,6 @@ export class Application
 	## Sets up the popup window with desired settings
 	##############################
 	def InitializePopup()
-		# const pos = line('w0')
-		# call cursor(pos, 1)
-
 		this.popup = popup_create([], {
 			borderhighlight: ['Normal', 'Normal', 'Normal', 'Normal'],
 			borderchars: ['─', '│', '─', '│', '╭', '╮', '╯', '╰'],
@@ -138,7 +137,6 @@ export class Application
 			if this.activity == Activity.PLAY
 				this.Clear()
 				this.UpdateGame()
-				# this.Draw()
 				this.DrawGame()
 			elseif this.activity == Activity.MENU
 				this.DrawMenu()
@@ -151,6 +149,8 @@ export class Application
 			endif
 		}, {repeat: -1})
 	enddef
+
+
 
 	################################
 	## Change Activity
@@ -167,19 +167,21 @@ export class Application
 		elseif this.activity == Activity.GAMEOVER
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		elseif this.activity == Activity.NEXTLEVEL
-			# stop move ghost timer
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
+				this.timer_ghost = 0
 			endif
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		elseif this.activity == Activity.CONGRATULATIONS
-			# stop move ghost timer
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
+				this.timer_ghost = 0
 			endif
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		endif
 	enddef
+
+
 
 	##########################################
 	## Initialize Game State
@@ -220,25 +222,26 @@ export class Application
 
 		var level: list<list<number>>
 		level = Utils.LoadMapFromFile(this_level_file)
+
 		for i in level
 			var line = []
 			for j in i
 				if j == Tile.PACMAN
 					this.player.SetPosition(len(line), len(this.map))
 				elseif j == Tile.BLINKY
-					var new_ghost = BlinkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.BLINKY)
+					var new_ghost = BlinkyGhost.new(Dir.NONE, Tile.BLINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.PINKY
-					var new_ghost = PinkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.PINKY)
+					var new_ghost = PinkyGhost.new(Dir.NONE, Tile.PINKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.INKY
-					var new_ghost = InkyGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.INKY)
+					var new_ghost = InkyGhost.new(Dir.NONE, Tile.INKY)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.CLYDE
-					var new_ghost = ClydeGhost.new(Dir.NONE, Tile.EMPTY, Ghost.CHASE, Tile.CLYDE)
+					var new_ghost = ClydeGhost.new(Dir.NONE, Tile.CLYDE)
 					new_ghost.SetPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
 				elseif j == Tile.CAGE
@@ -252,9 +255,14 @@ export class Application
 			add(this.lst_entity, copy(line))
 		endfor
 
-		# Clear ghost from map
+		this.len_map = len(this.map)
+		this.len_map_x = len(this.map[0])
+
+
+		# Clear ghost from map and give it initial state
 		for g in this.ghosts
 			this.map[g.y][g.x] = Tile.EMPTY
+			g.AddMapSize(this.len_map_x, this.len_map)
 		endfor
 
 		# Clear player from map
@@ -339,10 +347,12 @@ export class Application
 				endif
 			endfor
 		endfor
+
 		if this.timer_ghost != 0
 			timer_stop(this.timer_ghost)
 			this.timer_ghost = 0
 		endif
+
 		this.timer_ghost = timer_start(100, (_) => {
 			for g in this.ghosts
 				g.last_x = g.x
@@ -386,6 +396,9 @@ export class Application
 	enddef
 
 
+	################################
+	## Increase Score
+	################################
 	def IncreaseScore(amount: number)
 		this.score += amount
 	enddef
@@ -399,6 +412,10 @@ export class Application
 		this.ChangeActivity(Activity.GAMEOVER)
 	enddef
 
+	###############################
+	## Replay Game
+	## When the game is over or player wants to restart
+	###############################
 	def Replay()
 		this.score = 0
 		this.level_num = this.level_min
@@ -495,9 +512,9 @@ export class Application
 			this.map[g.y][g.x] = g.id
 		endfor
 
-		for i in range(len(this.map))
+		for i in range(this.len_map)
 			var line_chars: list<string> = []
-			for j in range(len(this.map[i]))
+			for j in range(this.len_map_x)
 				const value = this.map[i][j]
 				if value == Tile.WALL
 					add(line_chars, this.map_opti[i][j])
@@ -511,7 +528,6 @@ export class Application
 		endfor
 		popup_settext(this.popup, print_map)
 	enddef
-
 
 
 
@@ -533,18 +549,14 @@ export class Application
 	## Update Game Logic
 	##############################
 	def UpdateGame()
-
-		# Update Player Position
 		const old_x = this.player.x
 		const old_y = this.player.y
-		const len_map = len(this.map)
-		const len_map_x = len(this.map[0])
 		var new_x = this.player.x
 		var new_y = this.player.y
 
 		if this.player.dir_save == Dir.DOWN
 			var p_y = this.player.y + 1
-			if p_y >= len_map
+			if p_y >= this.len_map
 				p_y = 0
 			endif
 			if this.map[p_y][this.player.x] != Tile.WALL
@@ -553,7 +565,7 @@ export class Application
 		elseif this.player.dir_save == Dir.UP
 			var p_y = this.player.y - 1
 			if p_y < 0
-				p_y = len_map - 1
+				p_y = this.len_map - 1
 			endif
 			if this.map[p_y][this.player.x] != Tile.WALL
 				this.player.dir = Dir.UP
@@ -561,14 +573,14 @@ export class Application
 		elseif this.player.dir_save == Dir.LEFT
 			var p_x = this.player.x - 1
 			if p_x < 0
-				p_x = len_map_x - 1
+				p_x = this.len_map_x - 1
 			endif
 			if this.map[this.player.y][p_x] != Tile.WALL
 				this.player.dir = Dir.LEFT
 			endif
 		elseif this.player.dir_save == Dir.RIGHT
 			var p_x = this.player.x + 1
-			if p_x >= len_map_x
+			if p_x >= this.len_map_x
 				p_x = 0
 			endif
 			if this.map[this.player.y][p_x] != Tile.WALL
@@ -591,13 +603,13 @@ export class Application
 
 		# if the player hit the bound of the this.map, teleport him to the other side
 		if new_x < 0
-			new_x = len_map_x - 1
-		elseif new_x >= len_map_x
+			new_x = this.len_map_x - 1
+		elseif new_x >= this.len_map_x
 			new_x = 0
 		endif
 		if new_y < 0
-			new_y = len_map - 1
-		elseif new_y >= len_map
+			new_y = this.len_map - 1
+		elseif new_y >= this.len_map
 			new_y = 0
 		endif
 
@@ -607,9 +619,10 @@ export class Application
 			return
 		endif
 
+		# Move the player
 		this.player.SetPosition(new_x, new_y)
 
-		var e_under_pacman = this.lst_entity[new_y][new_x]
+		const e_under_pacman = this.lst_entity[new_y][new_x]
 
 		if e_under_pacman == Tile.SIMPLE
 			this.IncreaseScore(10)
@@ -626,12 +639,9 @@ export class Application
 			this.lst_entity[new_y][new_x] = Tile.EMPTY
 			# Set all ghosts to FRIGHTENED
 			for g in this.ghosts
-				if g.IsEaten()
-					continue
-				endif
 				g.SetFrightened()
 			endfor
-		# Tile.FOOD1 to Tile.FOOD8
+		# FOOD1 to FOOD8
 		elseif e_under_pacman >= Tile.FOOD1 && e_under_pacman <= Tile.FOOD8
 			this.IncreaseScore(100 * (e_under_pacman - Tile.FOOD1 + 1))
 			this.lst_entity[new_y][new_x] = Tile.EMPTY
