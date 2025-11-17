@@ -43,7 +43,6 @@ export class Application
 	var timer_ghost: number
 	var combo_ghost: number = 1
 	var timer_isblue: number
-	var cage_pos: list<number>
 	var lst_entity: list<list<number>>
 	var remain_food: number
 	var level_num: number = 1
@@ -248,8 +247,6 @@ export class Application
 					var new_ghost = ClydeGhost.new(Dir.NONE, Tile.CLYDE)
 					new_ghost.InitPosition(len(line), len(this.map))
 					add(this.ghosts, new_ghost)
-				elseif j == Tile.CAGE
-					this.cage_pos = [len(line), len(this.map)]
 				elseif j == Tile.SIMPLE
 					this.remain_food += 1
 				endif
@@ -352,49 +349,16 @@ export class Application
 			endfor
 		endfor
 
+
+		# Async ghost movement
 		if this.timer_ghost != 0
 			timer_stop(this.timer_ghost)
 			this.timer_ghost = 0
 		endif
-
 		this.timer_ghost = timer_start(100, (_) => {
 			for g in this.ghosts
-				g.last_x = g.x
-				g.last_y = g.y
-
-				if g.IsEaten()
-					# Move to cage
-					g.GhostMoveToGoal(this.map, this.cage_pos[0], this.cage_pos[1])
-					var rnd = rand() % 3
-					if rnd >= 1 && rnd <= 2
-						g.GhostMoveToGoal(this.map, this.cage_pos[0], this.cage_pos[1])
-					endif
-					# Check if reached cage
-					if g.x >= this.cage_pos[0] - 1 && g.x <= this.cage_pos[0] + 1 && g.y >= this.cage_pos[1] - 1 && g.y <= this.cage_pos[1] + 1
-						g.SetChase()
-					endif
-				elseif g.IsFrightened()
-					var rnd = rand() % 3
-					if rnd >= 1 && rnd <= 2
-						g.GhostMoveFrightened(this.map, this.player)
-					endif
-				elseif g.IsNormal() || g.IsFrightened()
-					g.GhostMove(this.map, this.player)
-				endif
-
-				if g.last_x == g.x && g.last_y == g.y
-					g.is_block += 1
-				else
-					g.is_block = 0
-				endif
-				if g.y == this.player.y && g.x == this.player.x
-					if g.IsNormal() 
-						this.GameOver()
-					elseif g.IsFrightened()
-						this.IncreaseScore(200 * this.combo_ghost)
-						g.SetEaten()
-					endif
-				endif
+				g.SupraMove(this.map, this.player)
+				this.CollideGhost(g)
 			endfor
 		}, {repeat: -1})
 	enddef
@@ -416,11 +380,16 @@ export class Application
 		this.ChangeActivity(Activity.GAMEOVER)
 	enddef
 
+	###############################
+	## New Level Logic
+	###############################
 	def NewLevel()
 		this.score += 1500 * this.level_num
 		this.level_num += 1
 		this.InitGame()
 	enddef
+
+
 	###############################
 	## Replay Game
 	## When the game is over or player wants to restart
@@ -511,6 +480,21 @@ export class Application
 		return 1
 	enddef
 
+	###############################
+	## Handle Ghost Collision
+	###############################
+	def CollideGhost(g: Ghost)
+		if g.y == this.player.y && g.x == this.player.x
+			if g.IsFrightened()
+				this.IncreaseScore(200 * this.combo_ghost)
+				this.combo_ghost += 1
+				g.SetEaten()
+			elseif g.IsNormal() 
+				this.GameOver()
+			endif
+		endif
+	enddef
+
 	##############################
 	## Draw Game in the Popup
 	##############################
@@ -523,14 +507,7 @@ export class Application
 		# draw ghost
 		for g in this.ghosts
 			# Check for ghost collision
-			if g.y == this.player.y && g.x == this.player.x
-				if g.IsFrightened()
-					this.score += 200
-					g.SetEaten()
-				elseif g.IsNormal() 
-					this.GameOver()
-				endif
-			endif
+			this.CollideGhost(g)
 			this.map[g.y][g.x] = g.id
 		endfor
 
@@ -571,78 +548,70 @@ export class Application
 	## Update Game Logic
 	##############################
 	def UpdateGame()
+		const pacman = this.player
 		const old_x = this.player.x
 		const old_y = this.player.y
-		var new_x = this.player.x
-		var new_y = this.player.y
+		var new_x = pacman.x
+		var new_y = pacman.y
 
-		if this.player.dir_save == Dir.DOWN
-			var p_y = this.player.y + 1
+		if pacman.dir_save == Dir.DOWN
+			var p_y = pacman.y + 1
 			if p_y >= this.len_map
 				p_y = 0
 			endif
-			if this.map[p_y][this.player.x] != Tile.WALL
-				this.player.dir = Dir.DOWN
+			if this.map[p_y][pacman.x] != Tile.WALL
+				pacman.dir = Dir.DOWN
 			endif
-		elseif this.player.dir_save == Dir.UP
-			var p_y = this.player.y - 1
+		elseif pacman.dir_save == Dir.UP
+			var p_y = pacman.y - 1
 			if p_y < 0
 				p_y = this.len_map - 1
 			endif
-			if this.map[p_y][this.player.x] != Tile.WALL
-				this.player.dir = Dir.UP
+			if this.map[p_y][pacman.x] != Tile.WALL
+				pacman.dir = Dir.UP
 			endif
-		elseif this.player.dir_save == Dir.LEFT
-			var p_x = this.player.x - 1
+		elseif pacman.dir_save == Dir.LEFT
+			var p_x = pacman.x - 1
 			if p_x < 0
 				p_x = this.len_map_x - 1
 			endif
-			if this.map[this.player.y][p_x] != Tile.WALL
-				this.player.dir = Dir.LEFT
+			if this.map[pacman.y][p_x] != Tile.WALL
+				pacman.dir = Dir.LEFT
 			endif
-		elseif this.player.dir_save == Dir.RIGHT
-			var p_x = this.player.x + 1
+		elseif pacman.dir_save == Dir.RIGHT
+			var p_x = pacman.x + 1
 			if p_x >= this.len_map_x
 				p_x = 0
 			endif
-			if this.map[this.player.y][p_x] != Tile.WALL
-				this.player.dir = Dir.RIGHT
+			if this.map[pacman.y][p_x] != Tile.WALL
+				pacman.dir = Dir.RIGHT
 			endif
-		else
-			this.player.dir = this.player.dir_save
 		endif
 
-		# Update this.player based on dir
-		if this.player.dir == Dir.UP
-			new_y = this.player.y - 1
-		elseif this.player.dir == Dir.DOWN
-			new_y = this.player.y + 1
-		elseif this.player.dir == Dir.LEFT
-			new_x = this.player.x - 1
-		elseif this.player.dir == Dir.RIGHT
-			new_x = this.player.x + 1
+		# Update pacman based on dir
+		if pacman.dir == Dir.UP
+			new_y = pacman.y - 1
+		elseif pacman.dir == Dir.DOWN
+			new_y = pacman.y + 1
+		elseif pacman.dir == Dir.LEFT
+			new_x = pacman.x - 1
+		elseif pacman.dir == Dir.RIGHT
+			new_x = pacman.x + 1
 		endif
 
 		# if the player hit the bound of the this.map, teleport him to the other side
-		if new_x < 0
-			new_x = this.len_map_x - 1
-		elseif new_x >= this.len_map_x
-			new_x = 0
-		endif
-		if new_y < 0
-			new_y = this.len_map - 1
-		elseif new_y >= this.len_map
-			new_y = 0
-		endif
+
+		new_x = (new_x + this.len_map_x) % this.len_map_x
+		new_y = (new_y + this.len_map) % this.len_map
 
 		# Check for wall collision
 		if this.map[new_y][new_x] == Tile.WALL
-			this.player.SetPosition(old_x, old_y)
+			pacman.SetPosition(old_x, old_y)
 			return
 		endif
 
 		# Move the player
-		this.player.SetPosition(new_x, new_y)
+		pacman.SetPosition(new_x, new_y)
 
 		const e_under_pacman = this.lst_entity[new_y][new_x]
 
@@ -650,10 +619,9 @@ export class Application
 			this.IncreaseScore(10)
 			this.lst_entity[new_y][new_x] = Tile.EMPTY
 			this.remain_food -= 1
+			# Win the game
 			if this.remain_food == 0
-				# Win the game
 				this.highscore = max([this.highscore, this.score])
-				g:SUPRA_PACMAN_HIGHSCORE = this.highscore
 				this.ChangeActivity(Activity.NEXTLEVEL)
 			endif
 		elseif e_under_pacman == Tile.PACGOMME
@@ -677,8 +645,8 @@ export class Application
 	def DrawScore(map_print: list<string>, is_over: bool = 0)
 		const width_2 = (Const.width / 2) - 25
 		const life_remain = this.lifes
-		var str = repeat(SPRITE_LOOKUP[Tile.PACMAN], life_remain)
-		var len_life = (strcharlen(str) + (this.lifes) * 1) - 1
+		const str = repeat(SPRITE_LOOKUP[Tile.PACMAN], life_remain)
+		const len_life = (strcharlen(str) + (this.lifes) * 1) - 1
 
 		add(map_print, printf(' ╭────────╮ ╭─────────────╮ ╭─────────────╮%*s╭───────────────────╮', width_2, ' '))
 		add(map_print, printf(' │ %-*s│ │ %-8d 💰 │ │ %-8d 🏆 │%*s│   Supra Pac-Man   │',
@@ -691,7 +659,6 @@ export class Application
 		))
 		add(map_print, printf(' ╰────────╯ ╰─────────────╯ ╰─────────────╯%*s╰───────────────────╯', width_2, ' '))
 		add(map_print, repeat('─', Const.width))
-
 	enddef
 
 

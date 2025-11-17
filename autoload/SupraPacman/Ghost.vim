@@ -214,7 +214,7 @@ export abstract class Ghost
 	enddef
 
 	def IsBlocked(): bool
-		return this.is_block >= 4
+		return this.is_block >= 3
 	enddef
 
 	###########################
@@ -296,6 +296,43 @@ export abstract class Ghost
 		this.id = Tile.GHOST_DEAD
 	enddef
 
+
+
+	def SupraMove(map: list<list<number>>, player: Pacman)
+		if this.IsBlocked()
+			this.dir = Dir.NONE
+		endif
+		this.last_x = this.x
+		this.last_y = this.y
+
+		if this.state == Ghost.CHASE || this.state == Ghost.SCATTER || this.state == Ghost.FRIGHTENED
+			this.GhostMove(map, player)
+		elseif this.IsEaten()
+			# Move to cage
+			this.GhostMoveToGoal(map, this.init_x, this.init_y)
+			const rnd = rand() % 3
+			if rnd <= 1
+				this.GhostMoveToGoal(map, this.init_x, this.init_y)
+			endif
+			# Check if reached cage
+			if this.x >= this.init_x - 1 && this.x <= this.init_x + 1 && this.y >= this.init_y - 1 && this.y <= this.init_y + 1
+				this.SetChase()
+			endif
+		elseif this.IsFrightened()
+			const rnd = rand() % 3
+			if rnd <= 1
+				this.GhostMoveFrightened(map, player)
+			endif
+		endif
+
+		# Check if the ghost is blocked
+		if this.last_x == this.x && this.last_y == this.y
+			this.is_block += 1
+		else
+			this.is_block = 0
+		endif
+	enddef
+
 	###########################
 	## Move Ghost
 	###########################
@@ -330,11 +367,6 @@ export abstract class Ghost
 			this.y = new_y
 
 			map[this.y][this.x] = this.id
-		endif
-		if this.last_x == this.x && this.last_y == this.y
-			this.is_block = 0
-		else
-			this.is_block += 1
 		endif
 	enddef
 

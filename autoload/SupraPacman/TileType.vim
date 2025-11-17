@@ -20,4 +20,3 @@ export const FOOD6 = 15
 export const FOOD7 = 16
 export const FOOD8 = 17
 export const GHOST_DEAD = 18
-export const CAGE = 19

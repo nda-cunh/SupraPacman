@@ -20,10 +20,6 @@ export class ClydeGhost extends Ghost
 		var target_x: number
 		var target_y: number
 
-		if ghost.IsBlocked()
-			ghost.dir = Dir.NONE
-		endif
-
 		if this.state == Ghost.SCATTER
 			# Target bottom-left corner
 			target_x = 1
@@ -33,7 +29,7 @@ export class ClydeGhost extends Ghost
 			const distance_squared = pow((ghost.y - pacman.y), 2) + pow((ghost.x - pacman.x), 2)
 			const distance = sqrt(distance_squared)
 
-			if distance < 9.0
+			if distance < 12.0
 				target_x = 1
 				target_y = ghost.len_map - 2
 			else

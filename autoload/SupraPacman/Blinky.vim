@@ -20,10 +20,6 @@ export class BlinkyGhost extends Ghost
 		var target_x = pacman.x
 		var target_y = pacman.y
 
-		if blinky.IsBlocked()
-			blinky.dir = Dir.NONE
-		endif
-
 		if this.state == Ghost.SCATTER
 			# Target top-right corner
 			target_x = blinky.len_map_x - 2

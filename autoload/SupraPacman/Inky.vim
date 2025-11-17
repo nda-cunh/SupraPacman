@@ -20,10 +20,6 @@ export class InkyGhost extends Ghost
 		var target_x: number
 		var target_y: number
 
-		if ghost.IsBlocked()
-			ghost.dir = Dir.NONE
-		endif
-
 		if this.state == Ghost.SCATTER
 			# Target bottom-right corner
 			target_x = ghost.len_map_x - 2

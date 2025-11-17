@@ -20,10 +20,6 @@ export class PinkyGhost extends Ghost
 		var target_y: number
 		var target_x: number
 
-		if pinky.IsBlocked()
-			pinky.dir = Dir.NONE
-		endif
-		
 		if this.state == Ghost.SCATTER
 			# Target top-left corner
 			target_x = 1
