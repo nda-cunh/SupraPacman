@@ -29,7 +29,12 @@ export const SPRITE_LOOKUP = [
     '  ', '⬛️', '󰮯 ', '🟦', '🟥', '🟪', '🟩', '🟨', '🔸', '🔶', '🍒', '🍓', '🍊', '🍎', '🍉', '🛸', '🔔', '🔑', '👀', '  '
 ]
 
-export class Application
+export def RunPacmanLevel(level_path: string = '', nb_level: number = 1)
+	var myapp = Application.new(level_path, nb_level)
+	myapp.Run()
+enddef
+
+class Application
 	var timer: number
 	var popup: number
 	var player: Pacman
