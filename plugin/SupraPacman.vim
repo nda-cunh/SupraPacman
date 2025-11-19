@@ -1,6 +1,12 @@
-vim9script
+vim9script noclear
 
-import '../autoload/SupraPacman/Application.vim' as App
+if exists('g:loaded_supra_pacman')
+	finish
+endif
+
+g:loaded_supra_pacman = 1
+
+import autoload '../autoload/SupraPacman/Application.vim' as App
 
 if !exists('g:SUPRA_PACMAN_HIGHSCORE')
 	g:SUPRA_PACMAN_HIGHSCORE = 0
