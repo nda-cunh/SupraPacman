@@ -781,7 +781,7 @@ class Application
 			add(gameover, space_center_btn .. button_quit[i])
 		endfor
 		# Print the highscore and Score
-		var lifes_str = '❤️  Lifes: ' .. repeat(SPRITE_LOOKUP[Tile.PACMAN], this.lifes)
+		var lifes_str = '❤️  Lifes: ' .. repeat(SPRITE_LOOKUP[Tile.PACMAN], this.lifes - 1)
 		var highscore_str = '🏆 Highscore: ' .. this.highscore
 		var score_str = '💰 Score: ' .. this.score
 		var txt_len = len(gameover)
