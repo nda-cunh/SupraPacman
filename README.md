@@ -1,4 +1,9 @@
-# Supra-Pacman
+# SupraPacman
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/f89618dc-3d95-4171-9c52-9ad7fc043f9b">
+</p>
+
+---
 
 > Just run the command `:Pacman` 
 
@@ -13,7 +18,7 @@
 - 🔸 10 points (Small Pellet)
 - 🔶 50 points (PacGum)
 - 🍒 100 points 
-- 👀 200 points x ghost eaten 
+- 👀 200 points by ghost eaten 
 - 🍓 200 points 
 - 🍊 300 points 
 - 🍎 400 points 
