@@ -1,7 +1,10 @@
+
 # SupraPacman
+
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/f89618dc-3d95-4171-9c52-9ad7fc043f9b">
+<img width=55% alt="pacman_vim" src="https://github.com/user-attachments/assets/70a58e7f-1a87-4543-a0eb-5798e728bfda" />
 </p>
+
 
 ---
 
