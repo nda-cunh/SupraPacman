@@ -30,6 +30,9 @@ export const SPRITE_LOOKUP = [
 ]
 
 export def RunPacmanLevel(level_path: string = '', nb_level: number = 1)
+	if exists('*g:SupraAchMetric')
+		call g:SupraAchMetric('pacman', 1)
+	endif
 	var myapp = Application.new(level_path, nb_level)
 	myapp.Run()
 enddef
@@ -56,6 +59,8 @@ class Application
 	var level_min: number = 1
 	var len_map: number
 	var len_map_x: number
+	var ate_ghost_level: bool = false
+	var start_time: list<any> = []
 
 	##############################
 	## Constructor
@@ -83,6 +88,13 @@ class Application
 			timer_stop(this.timer_ghost)
 			this.timer_ghost = 0
 		endif
+		if exists('*g:SupraAchMetric') && !empty(this.start_time)
+			var secs = float2nr(reltimefloat(reltime(this.start_time)))
+			if secs > 0
+				call g:SupraAchMetric('game_seconds', secs)
+			endif
+		endif
+		this.start_time = []
 		Utils.ShowCursor()
 		popup_close(this.popup)
 	enddef
@@ -136,6 +148,7 @@ class Application
 	## Run Game Loop
 	###############################
 	def Run()
+		this.start_time = reltime()
 		if this.timer != 0
 			timer_stop(this.timer)
 		endif
@@ -181,6 +194,7 @@ class Application
 			setbufvar(bufnr, '&filetype', 'suprapacman')
 		elseif this.activity == Activity.CONGRATULATIONS
 			this.score += (10000 * this.lifes)
+			this.AchEvent('pacman_complete')
 			if this.timer_ghost != 0
 				timer_stop(this.timer_ghost)
 				this.timer_ghost = 0
@@ -209,6 +223,7 @@ class Application
 		endif
 
 		this.combo_ghost = 1
+		this.ate_ghost_level = false
 		this.remain_food = 0
 		this.player = Pacman.new()
 		this.ChangeActivity(Activity.PLAY)
@@ -376,6 +391,12 @@ class Application
 		this.score += amount
 	enddef
 
+	def AchEvent(id: string)
+		if exists('*g:SupraAchEvent')
+			call g:SupraAchEvent(id)
+		endif
+	enddef
+
 	###############################
 	## Game Over Logic
 	###############################
@@ -493,6 +514,10 @@ class Application
 			if g.IsFrightened()
 				this.IncreaseScore(200 * this.combo_ghost)
 				this.combo_ghost += 1
+				this.ate_ghost_level = true
+				if this.combo_ghost == 5
+					this.AchEvent('pacman_glutton')
+				endif
 				g.SetEaten()
 			elseif g.IsNormal() 
 				this.GameOver()
@@ -627,6 +652,10 @@ class Application
 			# Win the game
 			if this.remain_food == 0
 				this.highscore = max([this.highscore, this.score])
+				this.AchEvent('pacman_master')
+				if !this.ate_ghost_level
+					this.AchEvent('pacman_pacifist')
+				endif
 				this.ChangeActivity(Activity.NEXTLEVEL)
 			endif
 		elseif e_under_pacman == Tile.PACGOMME
@@ -643,6 +672,9 @@ class Application
 		elseif e_under_pacman >= Tile.FOOD1 && e_under_pacman <= Tile.FOOD8
 			this.IncreaseScore(100 * (e_under_pacman - Tile.FOOD1 + 1))
 			this.lst_entity[new_y][new_x] = Tile.EMPTY
+			if e_under_pacman == Tile.FOOD2
+				this.AchEvent('pacman_strawberry')
+			endif
 		endif
 	enddef
 
