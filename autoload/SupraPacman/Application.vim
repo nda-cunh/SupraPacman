@@ -61,6 +61,8 @@ class Application
 	var len_map_x: number
 	var ate_ghost_level: bool = false
 	var start_time: list<any> = []
+	# Pacman if the player begin at level 1
+	var ranked = false
 
 	##############################
 	## Constructor
@@ -68,6 +70,11 @@ class Application
 	def new(directories: string, level_chose: number)
 		this.directory_level = directories
 		this.level_min = level_chose
+		if level_chose == 1
+			this.ranked = true
+		else
+			this.ranked = false
+		endif
 		Utils.HideCursor()
 		this.InitializePopup()
 		this.ChangeActivity(Activity.MENU)
@@ -392,6 +399,9 @@ class Application
 	enddef
 
 	def AchEvent(id: string)
+		if this.ranked == false
+			return
+		endif
 		if exists('*g:SupraAchEvent')
 			call g:SupraAchEvent(id)
 		endif
@@ -402,7 +412,9 @@ class Application
 	###############################
 	def GameOver()
 		this.highscore = max([this.highscore, this.score])
-		g:SUPRA_PACMAN_HIGHSCORE = this.highscore
+		if this.ranked == true
+			g:SUPRA_PACMAN_HIGHSCORE = this.highscore
+		endif
 		this.ChangeActivity(Activity.GAMEOVER)
 	enddef
 
@@ -684,15 +696,17 @@ class Application
 		const life_remain = this.lifes
 		const str = repeat(SPRITE_LOOKUP[Tile.PACMAN], life_remain)
 		const len_life = (strcharlen(str) + (this.lifes) * 1) - 1
+		const mode_label = this.ranked ? '   Supra Pac-Man   ' : '     UNRANKED      '
 
 		add(map_print, printf(' ╭────────╮ ╭─────────────╮ ╭─────────────╮%*s╭───────────────────╮', width_2, ' '))
-		add(map_print, printf(' │ %-*s│ │ %-8d 💰 │ │ %-8d 🏆 │%*s│   Supra Pac-Man   │',
+		add(map_print, printf(' │ %-*s│ │ %-8d 💰 │ │ %-8d 🏆 │%*s│%s│',
 			8 + len_life,
 			str,
 			this.score,
 			this.highscore,
 			width_2,
-			' '
+			' ',
+			mode_label
 		))
 		add(map_print, printf(' ╰────────╯ ╰─────────────╯ ╰─────────────╯%*s╰───────────────────╯', width_2, ' '))
 		add(map_print, repeat('─', Const.width))
