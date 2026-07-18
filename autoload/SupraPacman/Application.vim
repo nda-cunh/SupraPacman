@@ -672,8 +672,8 @@ class Application
 		elseif e_under_pacman >= Tile.FOOD1 && e_under_pacman <= Tile.FOOD8
 			this.IncreaseScore(100 * (e_under_pacman - Tile.FOOD1 + 1))
 			this.lst_entity[new_y][new_x] = Tile.EMPTY
-			if e_under_pacman == Tile.FOOD2
-				this.AchEvent('pacman_strawberry')
+			if e_under_pacman == Tile.FOOD4
+				this.AchEvent('pacman_apple')
 			endif
 		endif
 	enddef
